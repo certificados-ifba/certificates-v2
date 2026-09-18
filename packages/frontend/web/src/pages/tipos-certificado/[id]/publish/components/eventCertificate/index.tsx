@@ -266,7 +266,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
       const pages = (certificateSelected.pages || []).map(page => ({
         backgroundImageUrl: page.image ? `${STORAGE_URL}/upload/${page.image}` : undefined,
         contentHtml: substituteCertificateText(page.text, event, participant, generationData),
-        validationCode: page.type === 'frente' ? participant.key : undefined,
+        validationCode: participant.key,
         layout: page.layout
       }))
 

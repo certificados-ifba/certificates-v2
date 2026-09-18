@@ -351,8 +351,7 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
             certificate,
             { tipoAtividade, funcao: criterioVisualizado }
           ),
-          validationCode:
-            page.type === 'frente' ? certificate.key : undefined,
+          validationCode: certificate.key,
           layout: page.layout,
         }))
 
