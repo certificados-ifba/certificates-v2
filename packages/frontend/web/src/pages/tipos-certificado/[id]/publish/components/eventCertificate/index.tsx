@@ -95,6 +95,7 @@ interface IParticipant {
   certificateId: string
   name: string
   activityName: string
+  activityTypeName: string
   functionName: string
   workload?: number
   start_date?: string
@@ -229,6 +230,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
           certificateId: c.id,
           name: c.participant.name,
           activityName: c.activity?.name || '',
+          activityTypeName: c.activity?.type?.name || '',
           functionName: c.function?.name || '',
           workload: c.workload,
           start_date: c.start_date,
@@ -259,7 +261,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
     setDownloadingParticipantId(participant.id)
     try {
       const generationData = {
-        tipoAtividade: participant.activityName,
+        tipoAtividade: participant.activityTypeName,
         funcao: participant.functionName
       }
 
@@ -275,26 +277,21 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
         pages
       })
 
-      const nowIso = new Date().toISOString()
+      // Só marca como baixado o que o servidor confirmou (com a data dele)
       try {
-        await api.patch(
+        const response = await api.patch(
           `tipos-certificado/${event.id}/certificates/${participant.certificateId}/download`,
           { model_id: certificateSelected.id }
         )
+        const downloads = response?.data?.data?.certificate?.downloads
+        if (downloads) {
+          setAllCertificates(list =>
+            list.map(c => (c.id === participant.certificateId ? { ...c, downloads } : c))
+          )
+        }
       } catch (markErr) {
         console.error('Erro ao marcar certificado como baixado:', markErr)
       }
-
-      setAllCertificates(list =>
-        list.map(c => {
-          if (c.id !== participant.certificateId) return c
-          const downloads = (c.downloads || []).filter(
-            (item: any) => getRefId(item.model) !== certificateSelected.id
-          )
-          downloads.push({ model: certificateSelected.id, downloaded_at: nowIso })
-          return { ...c, downloads }
-        })
-      )
       setOpenParticipantModal(false)
     } catch (err) {
       console.error('Erro ao gerar certificado:', err)
