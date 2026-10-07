@@ -16,6 +16,8 @@ module.exports = {
     basePath,
     baseURL,
     siteKey: process.env?.HCAPTCHA_SITEKEY,
-    webURL: process.env?.WEB_URL || 'http://localhost:4000'
+    // Sem WEB_URL, links como /validate/:key ficam relativos: em produção o
+    // web e o participant estão no mesmo domínio. Em dev o compose define.
+    webURL: (process.env?.WEB_URL || '').replace(/\/$/, '')
   }
 }
