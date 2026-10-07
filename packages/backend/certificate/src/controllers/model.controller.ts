@@ -109,13 +109,16 @@ export class ModelController {
   @MessagePattern('model_update')
   public async modelUpdate(params: {
     id: string
+    event: string
     model: Partial<import('../interfaces/model.interface').IModel>
   }): Promise<IModelUpdateResponse> {
     let result: IModelUpdateResponse
 
     if (params?.id && params?.model) {
       try {
-        const current = await this.modelService.findModelById(params.id)
+        const found = await this.modelService.findModelById(params.id)
+        // Só atualiza modelo do evento informado (o dono foi conferido no gateway)
+        const current = found && String(found.event) === String(params.event) ? found : null
         if (current && params.model.criterions) {
           params.model.criterions = this.uniqueCriterions(params.model.criterions)
           const conflicts = await this.modelService.findCriterionConflicts(

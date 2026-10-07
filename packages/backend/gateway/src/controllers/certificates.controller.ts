@@ -293,12 +293,32 @@ export class CertificatesController {
     type: CreateCertificateResponseDto
   })
   public async markCertificateAsDownloaded(
+    @Req() request: IAuthorizedRequest,
     @Param() params: CertificateIdDto,
     @Body() body: MarkCertificateDownloadedDto
   ): Promise<CreateCertificateResponseDto> {
+    const eventResponse: IServiceTipoCertificadoGetByIdResponse = await this.eventServiceClient
+      .send('tipo_certificado_get_by_id', {
+        id: params.event_id,
+        user: request.user
+      })
+      .toPromise()
+
+    if (eventResponse.status !== HttpStatus.OK) {
+      throw new HttpException(
+        {
+          message: eventResponse.message,
+          data: null,
+          errors: null
+        },
+        eventResponse.status
+      )
+    }
+
     const markResponse: IServiceCertificateMarkDownloadedResponse = await this.certificateServiceClient
       .send('certificate_mark_downloaded', {
         id: params.id,
+        event: eventResponse.data.event.id,
         model_id: body.model_id
       })
       .toPromise()

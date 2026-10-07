@@ -11,10 +11,14 @@ import { ICertificateMarkDownloadedResponse } from '../interfaces/certificate-ma
 import { ICertificateValidateResponse } from '../interfaces/certificate-validate-response.interface'
 import { ICertificate } from '../interfaces/certificate.interface'
 import { CertificateService } from '../services/certificate.service'
+import { ModelService } from '../services/model.service'
 
 @Controller()
 export class CertificateController {
-  constructor(private readonly certificateService: CertificateService) {}
+  constructor(
+    private readonly certificateService: CertificateService,
+    private readonly modelService: ModelService
+  ) {}
 
   @MessagePattern('certificate_list')
   public async certificateList(
@@ -207,17 +211,25 @@ export class CertificateController {
   @MessagePattern('certificate_mark_downloaded')
   public async certificateMarkDownloaded(params: {
     id: string
+    event: string
     model_id: string
   }): Promise<ICertificateMarkDownloadedResponse> {
     let result: ICertificateMarkDownloadedResponse
 
-    if (params && params.id && params.model_id) {
+    if (params && params.id && params.event && params.model_id) {
       try {
         const certificate = await this.certificateService.findCertificateById(
           params.id
         )
+        const model = await this.modelService.findModelById(params.model_id)
 
-        if (certificate) {
+        // Certificado e modelo precisam ser do evento informado (dono conferido no gateway)
+        if (
+          certificate &&
+          model &&
+          String(certificate.event) === String(params.event) &&
+          String(model.event) === String(params.event)
+        ) {
           const updated = await this.certificateService.markCertificateAsDownloaded(
             params.id,
             params.model_id
