@@ -258,6 +258,8 @@ export const EventCard = styled.div<{ downloaded?: boolean }>`
 
 export const EventCardTop = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 8px;
@@ -265,6 +267,8 @@ export const EventCardTop = styled.div`
 `
 
 export const EventName = styled.span`
+  /* Abaixo desta largura a etiqueta do tipo desce para a linha de baixo */
+  flex: 1 1 140px;
   font-size: 14px;
   font-weight: 500;
   color: #1a1a18;
@@ -277,7 +281,9 @@ export const EventTypeBadge = styled.span`
   border-radius: 20px;
   white-space: nowrap;
   flex-shrink: 0;
-  margin-left: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `
 
 export const EventCardMeta = styled.div`
