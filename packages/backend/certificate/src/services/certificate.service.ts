@@ -69,6 +69,11 @@ export class CertificateService {
     return await this.CertificateModel.findById(id)
   }
 
+  public async findCertificateWithActivity(id: string): Promise<ICertificate> {
+    if (!Types.ObjectId.isValid(id)) return null
+    return await this.CertificateModel.findById(id).populate('activity')
+  }
+
   public async findCertificateByKey(key: string): Promise<ICertificate> {
     return await this.CertificateModel.findOne({ key })
       .populate('function')

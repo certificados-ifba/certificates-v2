@@ -103,4 +103,26 @@ export class ModelService {
       totalCount: count
     }
   }
+
+  public async findModelForCertificate(
+    event: string,
+    typeActivity: string,
+    func: string
+  ): Promise<IModel> {
+    const models = await this.ModelModel.find({
+      event: new Types.ObjectId(event)
+    }).exec()
+
+    return (
+      models.find(model =>
+        model.criterions?.some(
+          criterion =>
+            String(criterion.type_activity) === typeActivity &&
+            String(criterion.function) === func
+        )
+      ) ||
+      models.find(model => model.is_default) ||
+      null
+    )
+  }
 }

@@ -1,6 +1,7 @@
 import { Controller, HttpStatus } from '@nestjs/common'
 import { MessagePattern } from '@nestjs/microservices'
 
+import { ICertificateParticipantModelResponse } from '../interfaces/certificate-participant-model-response.interface'
 import { IModelByIdResponse } from '../interfaces/model-by-id-response.interface'
 import { IModelCreateResponse } from '../interfaces/model-create-response.interface'
 import { IModelDeleteResponse } from '../interfaces/model-delete-response.interface'
@@ -8,11 +9,61 @@ import { IModelListParams } from '../interfaces/model-list-params.interface'
 import { IModelListResponse } from '../interfaces/model-list-response.interface'
 import { IModelUpdateResponse } from '../interfaces/model-update-response.interface'
 import { IModel } from '../interfaces/model.interface'
+import { CertificateService } from '../services/certificate.service'
 import { ModelService } from '../services/model.service'
 
 @Controller()
 export class ModelController {
-  constructor(private readonly modelService: ModelService) { }
+  constructor(
+    private readonly modelService: ModelService,
+    private readonly certificateService: CertificateService
+  ) { }
+
+  @MessagePattern('certificate_participant_model')
+  public async certificateParticipantModel(params: {
+    id: string
+    user: string
+  }): Promise<ICertificateParticipantModelResponse> {
+    if (!params?.id || !params?.user) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: 'certificate_participant_model_bad_request',
+        data: null
+      }
+    }
+
+    const certificate = await this.certificateService.findCertificateWithActivity(
+      params.id
+    )
+
+    if (!certificate || String(certificate.participant) !== params.user) {
+      return {
+        status: HttpStatus.NOT_FOUND,
+        message: 'certificate_participant_model_not_found',
+        data: null
+      }
+    }
+
+    const model = await this.modelService.findModelForCertificate(
+      String(certificate.event),
+      String(certificate.activity?.type),
+      String(certificate.function)
+    )
+
+    if (!model) {
+      return {
+        status: HttpStatus.NOT_FOUND,
+        message: 'certificate_participant_model_without_model',
+        data: null
+      }
+    }
+
+    return {
+      status: HttpStatus.OK,
+      message: 'certificate_participant_model_success',
+      data: { model }
+    }
+  }
 
   @MessagePattern('model_list')
   public async modelList(
