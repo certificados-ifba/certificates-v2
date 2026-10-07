@@ -10,7 +10,9 @@ import { IModel } from '../interfaces/model.interface'
 export class ModelService {
   constructor(
     @InjectModel('Model')
-    private readonly ModelModel: Model<IModel>
+    private readonly ModelModel: Model<IModel>,
+    @InjectModel('Activity')
+    private readonly ActivityModel: Model<any>
   ) { }
 
   public async createModel(modelBody: IModel): Promise<IModel> {
@@ -43,16 +45,24 @@ export class ModelService {
     }
     if (exceptModelId) query._id = { $ne: new Types.ObjectId(exceptModelId) }
 
-    const models = await this.ModelModel.find(query).populate('criterions.activity')
-
-    return models.flatMap(model =>
-      model.criterions
-        .filter(criterion => activityIds.includes(String((criterion.activity as any)?._id || criterion.activity)))
-        .map(criterion => ({
-          activity: (criterion.activity as any)?.name || String(criterion.activity),
-          model: model.name
-        }))
+    // Compara pelos ids gravados (sem populate): atividade apagada também conta
+    const models = await this.ModelModel.find(query).lean()
+    const conflicts = models.flatMap(model =>
+      (model.criterions || [])
+        .filter(criterion => activityIds.includes(String(criterion.activity)))
+        .map(criterion => ({ activityId: String(criterion.activity), model: model.name }))
     )
+
+    const activities = await this.ActivityModel.find(
+      { _id: { $in: conflicts.map(conflict => new Types.ObjectId(conflict.activityId)) } },
+      'name'
+    ).lean()
+    const activityNames = new Map(activities.map(activity => [String(activity._id), activity.name]))
+
+    return conflicts.map(conflict => ({
+      activity: activityNames.get(conflict.activityId) || conflict.activityId,
+      model: conflict.model
+    }))
   }
 
   public async removeModelById(id: string): Promise<IModel> {
