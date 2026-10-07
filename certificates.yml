@@ -9,6 +9,7 @@ services:
       - HCAPTCHA_SITEKEY=${HCAPTCHA_SITEKEY}
       - API_URI=${API_URI}
       - SHEET_PASSWORD=${SHEET_PASSWORD}
+      - PARTICIPANT_URL=${PARTICIPANT_URL:-/participante}
     build:
       context: .
       dockerfile: ./docker/Dockerfile.web
@@ -22,6 +23,36 @@ services:
         - traefik.http.routers.certificates-web.entrypoints=web
         - traefik.http.routers.certificates-web.rule=Host(`${DOMAIN:-localhost}`)
         - traefik.http.services.certificates-web.loadbalancer.server.port=${WEB_PORT}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 5
+    networks:
+      - public
+
+  # =============================
+  # FRONTEND PARTICIPANTE (nova tela, em avaliação)
+  # =============================
+  participant:
+    image: 127.0.0.1:5000/certificates-participant
+    environment:
+      - HCAPTCHA_SITEKEY=${HCAPTCHA_SITEKEY}
+      - API_URI=${API_URI}
+      - WEB_URL=${WEB_URL}
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.participant
+    hostname: participant
+    command: yarn workspace @certificates/participant prod
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=public
+        - traefik.http.routers.certificates-participant.service=certificates-participant
+        - traefik.http.routers.certificates-participant.entrypoints=web
+        - traefik.http.routers.certificates-participant.rule=(Host(`${DOMAIN:-localhost}`) && PathPrefix(`/participante`))
+        - traefik.http.services.certificates-participant.loadbalancer.server.port=3000
     logging:
       driver: json-file
       options:
