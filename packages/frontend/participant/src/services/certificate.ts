@@ -92,6 +92,9 @@ const sanitize = (value: string) =>
 export const certificateFilename = (certificate: RawCertificate): string =>
   `${sanitize(certificate.activity?.name)}_${certificate.key || certificate.id}`
 
+export const isUnauthorized = (err: any): boolean =>
+  err?.response?.status === 401
+
 export async function buildCertificate(
   certificate: RawCertificate,
   participantName: string,
@@ -151,7 +154,9 @@ export async function downloadCertificatesZip(
       const folder = sanitize(certificate.event?.name)
       zip.file(`${folder}/${certificateFilename(certificate)}.pdf`, blob)
       ok.push(certificate.id)
-    } catch {
+    } catch (err) {
+      // Sessão expirada: interrompe, quem chamou manda para o login
+      if (isUnauthorized(err)) throw err
       failed.push(certificate.id)
     }
     onProgress?.(ok.length + failed.length, certificates.length)

@@ -12,6 +12,7 @@ import { api, errorMessage } from '../../services/api'
 import {
   downloadCertificate,
   downloadCertificatesZip,
+  isUnauthorized,
   RawCertificate
 } from '../../services/certificate'
 import { capitalize, capitalizeFirst } from '../../services/format'
@@ -387,6 +388,10 @@ export const Certificates: React.FC<Props> = ({
           description: cert.name
         })
       } catch (err) {
+        if (isUnauthorized(err)) {
+          onUnauthorized()
+          return
+        }
         showToast({
           kind: 'error',
           title: 'Não foi possível gerar o certificado',
@@ -396,7 +401,7 @@ export const Certificates: React.FC<Props> = ({
         setBusy(null)
       }
     },
-    [busy, markDownloaded, participantName, showToast, token]
+    [busy, markDownloaded, onUnauthorized, participantName, showToast, token]
   )
 
   const handleDownloadMany = useCallback(
@@ -436,11 +441,21 @@ export const Certificates: React.FC<Props> = ({
                     : 'Nenhum arquivo foi gerado.'
               }
         )
+      } catch (err) {
+        if (isUnauthorized(err)) {
+          onUnauthorized()
+          return
+        }
+        showToast({
+          kind: 'error',
+          title: 'Não foi possível gerar o arquivo .zip',
+          description: errorMessage(err, 'Tente novamente em instantes.')
+        })
       } finally {
         setBusy(null)
       }
     },
-    [busy, markDownloaded, participantName, showToast, token]
+    [busy, markDownloaded, onUnauthorized, participantName, showToast, token]
   )
 
   const handleDownloadEvent = useCallback(
