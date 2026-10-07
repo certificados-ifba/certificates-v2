@@ -105,7 +105,8 @@ export async function buildCertificate(
   const pages: PdfPage[] = modelPages.map(page => ({
     backgroundImageUrl: page.image ? storageUrl(page.image) : undefined,
     contentHtml: substitute(page.text, certificate, participantName),
-    validationCode: page.type === 'frente' ? certificate.key : undefined,
+    // Igual ao download do admin: código de validação em todas as páginas
+    validationCode: certificate.key,
     layout: page.layout
   }))
 
