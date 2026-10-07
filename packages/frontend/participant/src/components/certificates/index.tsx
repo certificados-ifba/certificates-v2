@@ -353,7 +353,7 @@ export const Certificates: React.FC<Props> = ({
     filteredGroups.flatMap(g => g.events).find(e => e.id === openEventId) ??
     null
 
-  const participantName = participant?.name || ''
+  const participantName = participant?.certificateName || ''
 
   const markDownloaded = useCallback((ids: string[]) => {
     setDownloadedCerts(prev => {

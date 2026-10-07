@@ -29,6 +29,8 @@ import {
 
 export interface Participant {
   name: string
+  // Nome como está no cadastro: é o que sai no PDF, igual ao download do admin
+  certificateName: string
   email: string
   cpf: string
   phone: string

@@ -43,6 +43,7 @@ const CertificatesPage: React.FC = () => {
         const user = data?.data?.user
         setParticipant({
           name: capitalize(user?.name),
+          certificateName: user?.name || '',
           email: user?.email,
           cpf: user?.personal_data?.cpf,
           phone: user?.personal_data?.phone,
