@@ -23,11 +23,15 @@ export class ModelService {
   public async findModelById(id: string): Promise<IModel> {
     return await this.ModelModel.findById(id)
       .populate({ path: 'criterions.activity', populate: { path: 'type' } })
+      .populate('criterions.function')
+      .populate('criterions.type_activity')
   }
 
   public async updateModelById(id: string, modelBody: Partial<IModel>): Promise<IModel> {
     return await this.ModelModel.findByIdAndUpdate(id, modelBody, { new: true })
       .populate({ path: 'criterions.activity', populate: { path: 'type' } })
+      .populate('criterions.function')
+      .populate('criterions.type_activity')
   }
 
   // Cada atividade só pode ser critério de um modelo do evento. Devolve as
@@ -84,6 +88,8 @@ export class ModelService {
 
     const models = await this.ModelModel.find(query)
       .populate({ path: 'criterions.activity', populate: { path: 'type' } })
+      .populate('criterions.function')
+      .populate('criterions.type_activity')
       .skip(perPage * (page - 1))
       .limit(perPage)
       .sort(sort)

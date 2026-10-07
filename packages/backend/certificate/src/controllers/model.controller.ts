@@ -68,7 +68,7 @@ export class ModelController {
         modelBody.criterions = this.uniqueCriterions(modelBody.criterions)
         const conflicts = await this.modelService.findCriterionConflicts(
           String(modelBody.event),
-          modelBody.criterions.map(criterion => String(criterion.activity))
+          this.criterionActivityIds(modelBody.criterions)
         )
         if (conflicts.length > 0) {
           return {
@@ -123,7 +123,7 @@ export class ModelController {
           params.model.criterions = this.uniqueCriterions(params.model.criterions)
           const conflicts = await this.modelService.findCriterionConflicts(
             String(current.event),
-            params.model.criterions.map(criterion => String(criterion.activity)),
+            this.criterionActivityIds(params.model.criterions),
             params.id
           )
           if (conflicts.length > 0) {
@@ -216,14 +216,26 @@ export class ModelController {
     return result
   }
 
-  // A mesma atividade repetida no próprio modelo não muda nada: mantém uma só.
-  private uniqueCriterions<T extends { activity: any }>(criterions?: T[]): T[] {
+  // O mesmo critério repetido no próprio modelo não muda nada: mantém um só.
+  // Critério antigo (sem atividade) é identificado por tipo + função.
+  private uniqueCriterions<T extends { activity?: any; function?: any; type_activity?: any }>(
+    criterions?: T[]
+  ): T[] {
     const seen = new Set<string>()
     return (criterions || []).filter(criterion => {
-      const activityId = String(criterion?.activity)
-      if (seen.has(activityId)) return false
-      seen.add(activityId)
+      const key = criterion?.activity
+        ? String(criterion.activity)
+        : `${criterion?.type_activity}|${criterion?.function}`
+      if (seen.has(key)) return false
+      seen.add(key)
       return true
     })
+  }
+
+  // A regra "uma atividade por modelo" só vale para critérios por atividade.
+  private criterionActivityIds(criterions: Array<{ activity?: any }>): string[] {
+    return criterions
+      .filter(criterion => criterion.activity)
+      .map(criterion => String(criterion.activity))
   }
 }
