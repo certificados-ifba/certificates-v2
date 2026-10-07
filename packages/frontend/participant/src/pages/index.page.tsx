@@ -80,7 +80,7 @@ const Login: React.FC = () => {
       </Head>
       <LoginCard onSubmit={handleSubmit} noValidate>
         <LoginLogo>
-          <img src="/logo-full.svg" alt="Certificados IFBA" />
+          <img src={`${process.env.basePath}/logo-full.svg`} alt="Certificados IFBA" />
         </LoginLogo>
         <div>
           <h1>Meus certificados</h1>

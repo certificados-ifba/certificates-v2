@@ -473,7 +473,7 @@ export const Certificates: React.FC<Props> = ({
       <ContentArea>
         <TopBar>
           <LogoWrapper>
-            <img src="/logo-full.svg" alt="Certificados IFBA" />
+            <img src={`${process.env.basePath}/logo-full.svg`} alt="Certificados IFBA" />
           </LogoWrapper>
           <TopBarActions>
             {!loading && allFiltered.length > 0 && (
