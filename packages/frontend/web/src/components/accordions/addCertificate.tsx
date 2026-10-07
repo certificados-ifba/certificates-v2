@@ -19,6 +19,7 @@ import api from '../../services/axios'
 import { Footer, Section } from '../../styles/components/accordion'
 import { Divider } from '../../styles/components/divider'
 import { Row } from '../../styles/components/grid'
+import { criterionToRole, roleToCriterion } from '../../utils/certificateModels'
 import { getValidationErrors } from '../../utils/getValidationErrors'
 import { Accordion } from '../accordion'
 import { Button } from '../button'
@@ -37,7 +38,9 @@ export interface IModelData {
     layout: any
   }>
   criterions: Array<{
-    activity: any
+    activity?: any
+    function?: any
+    type_activity?: any
   }>
 }
 
@@ -67,13 +70,7 @@ const AddCertificate: React.FC<Props> = ({
   const [rolesFormRef, setRolesFormRef] = useState(null)
 
   // Extrair roles iniciais do modelData
-  const initialRoles: IRole[] = (modelData?.criterions || []).map((c, index) => ({
-    number: index + 1,
-    activity: {
-      name: typeof c.activity === 'object' ? (c.activity?.name || '') : '',
-      id: typeof c.activity === 'object' ? (c.activity?.id || c.activity?.value || '') : String(c.activity)
-    }
-  }))
+  const initialRoles: IRole[] = (modelData?.criterions || []).map(criterionToRole)
 
   const [collectedRoles, setCollectedRoles] = useState<any[]>(initialRoles)
   const [loading, setLoading] = useState(false)
@@ -199,9 +196,7 @@ const AddCertificate: React.FC<Props> = ({
         }
 
         // Coletar critérios
-        const criterions = collectedRoles.map(role => ({
-            activity: role.activity?.value || role.activity?.id || role.activity
-          }))
+        const criterions = collectedRoles.map(roleToCriterion)
 
         const payload = {
           name: data.name,

@@ -14,7 +14,7 @@ import { useAdvancedFilters } from '@hooks'
 import { useToast } from '@providers'
 import { api, usePaginatedRequest } from '@services'
 import { generateCertificatePdf } from '@services/pdf'
-import { capitalize, maskCpf } from '@utils'
+import { capitalize, findModelForCertificate, maskCpf } from '@utils'
 import { useRouter } from 'next/router'
 import { useCallback, useMemo, useState } from 'react'
 import {
@@ -56,7 +56,10 @@ interface IRequest {
 }
 
 interface IModelCriterion {
-  activity: IActivity
+  activity?: IActivity
+  // Formato antigo (tipo de atividade + função)
+  function?: IGeneric
+  type_activity?: IGeneric
 }
 
 interface IModel {
@@ -89,8 +92,6 @@ const formatDateRange = (startDate: Date | string, endDate: Date | string) => {
     options
   )} a ${end.toLocaleDateString('pt-BR', options)}`
 }
-
-const getRefId = (value: any) => String(value?.id || value?._id || value || '')
 
 const substituteCertificateText = (
   html: string,
@@ -320,13 +321,7 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
           return
         }
 
-        const activityId = getRefId(certificate.activity)
-        const selectedModel =
-          models.find(model =>
-            model.criterions?.some(
-              criterion => getRefId(criterion.activity) === activityId
-            )
-          ) || models.find(model => model.is_default)
+        const selectedModel = findModelForCertificate(models, certificate)
 
         if (!selectedModel) {
           addToast({

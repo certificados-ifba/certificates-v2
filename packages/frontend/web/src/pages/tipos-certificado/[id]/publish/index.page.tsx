@@ -9,6 +9,7 @@ import {
 import { withAuth } from '@hocs'
 import { useToast } from '@providers'
 import { api } from '@services'
+import { getModelRows, isModelRowPending } from '@utils'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
@@ -42,27 +43,6 @@ const stepList = [
   { id: 3, name: certificateName },
   { id: 4, name: endName }
 ]
-
-const getRefId = (value: any): string =>
-  String(value?.id || value?._id || value || '')
-
-const isDownloadedForModel = (
-  certificate: any,
-  model: { id: string; updated_at?: string }
-): boolean => {
-  const download = (certificate.downloads || []).find(
-    (item: any) => getRefId(item.model) === model.id
-  )
-  if (!download?.downloaded_at) return false
-  if (
-    model.updated_at &&
-    new Date(download.downloaded_at) < new Date(model.updated_at)
-  ) {
-    // O modelo foi editado depois desse download: considera desatualizado.
-    return false
-  }
-  return true
-}
 
 const Publish: React.FC = () => {
   const router = useRouter()
@@ -122,7 +102,7 @@ const Publish: React.FC = () => {
         id: string
         name: string
         is_default: boolean
-        criterions: Array<{ activity: any }>
+        criterions: Array<{ activity?: any; function?: any; type_activity?: any }>
         updated_at?: string
       }> = modelsResponse?.data?.data || []
       const certificates: any[] = certsResponse?.data?.data || []
@@ -155,28 +135,13 @@ const Publish: React.FC = () => {
         return false
       }
 
-      // Validação: todo modelo precisa ter seus certificados baixados
-      const coveredActivityIds = new Set(
-        regularModels.flatMap(m =>
-          (m.criterions || []).map(c => getRefId(c.activity))
+      // Validação: todo modelo precisa ter seus certificados baixados (mesmas
+      // linhas que o assistente mostra; linha sem certificado não pende)
+      const pendingModels = models.filter(model =>
+        getModelRows(model, models, activities, certificates).some(row =>
+          isModelRowPending(row, model.id, model.updated_at)
         )
       )
-      const pendingModels = models.filter(model => {
-        const criterionActivityIds = model.is_default
-          ? activities
-              .map(a => getRefId(a))
-              .filter(actId => !coveredActivityIds.has(actId))
-          : (model.criterions || []).map(c => getRefId(c.activity))
-
-        return criterionActivityIds.some(actId => {
-          const matching = certificates.filter(
-            c => getRefId(c.activity) === actId
-          )
-          // Sem participantes nessa atividade: nada a baixar.
-          if (matching.length === 0) return false
-          return !matching.some(c => isDownloadedForModel(c, model))
-        })
-      })
       if (pendingModels.length > 0) {
         addToast({
           type: 'error',

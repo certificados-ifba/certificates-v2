@@ -1,4 +1,5 @@
 export * from './capitalize'
+export * from './certificateModels'
 export * from './debounce'
 export * from './formatters'
 export * from './getErrorMessage'

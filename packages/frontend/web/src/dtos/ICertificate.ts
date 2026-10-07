@@ -33,6 +33,8 @@ interface ICertificate {
 export interface IRole {
   number: number
   activity: { name: string; id: string }
+  // Critério no formato antigo (tipo de atividade + função), preservado ao salvar
+  legacy?: { type_activity: string; function: string }
 }
 
 export type { ICertificate }

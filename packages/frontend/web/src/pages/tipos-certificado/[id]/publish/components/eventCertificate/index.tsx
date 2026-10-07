@@ -5,6 +5,7 @@ import {
 } from '@components'
 import { api } from '@services'
 import { generateCertificatePdf } from '@services/pdf'
+import { getModelRows, IModelRow, isDownloadedForModel } from '@utils'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiAlertCircle, FiAward, FiCheckCircle, FiDownload, FiSearch, FiUser, FiX } from 'react-icons/fi'
@@ -17,7 +18,10 @@ interface IGenericRef {
 }
 
 interface ICriterion {
-  activity: IGenericRef
+  activity?: IGenericRef
+  // Formato antigo (tipo de atividade + função)
+  function?: IGenericRef
+  type_activity?: IGenericRef
 }
 
 interface IApiModel {
@@ -105,20 +109,6 @@ interface IParticipant {
   key?: string
 }
 
-const getRefId = (value: any) => String(value?.id || value?._id || value || '')
-
-const isDownloadedForModel = (certificate: any, model: IProcessedCertificate): boolean => {
-  const download = (certificate.downloads || []).find(
-    (item: any) => getRefId(item.model) === model.id
-  )
-  if (!download?.downloaded_at) return false
-  if (model.updatedAt && new Date(download.downloaded_at) < new Date(model.updatedAt)) {
-    // O modelo foi editado depois desse download: considera desatualizado.
-    return false
-  }
-  return true
-}
-
 const substituteCertificateText = (
   html: string,
   event: any,
@@ -184,29 +174,21 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
     if (event) loadModels()
   }, [event])
 
-  const defaultModelCriterions = useMemo<ICriterion[]>(() => {
-    const coveredActivityIds = new Set(
-      certificateList
-        .filter(certificate => !certificate.is_default)
-        .flatMap(certificate => certificate.criterions.map(criterion => getRefId(criterion.activity)))
-    )
-    return activities
-      .filter(activity => !coveredActivityIds.has(getRefId(activity)))
-      .map(activity => ({ activity }))
-  }, [certificateList, activities])
+  // Linhas de cada modelo (uma por critério ou, no padrão, por atividade sem modelo)
+  const rowsByModel = useMemo(
+    () =>
+      new Map(
+        certificateList.map(model => [
+          model.id,
+          getModelRows(model, certificateList, activities, allCertificates)
+        ])
+      ),
+    [certificateList, activities, allCertificates]
+  )
 
-  const getMatchingCertificates = useCallback((certs: any[], criterion?: ICriterion) => {
-    if (!criterion) {
-      // Modelo padrão (sem critério específico): todos os participantes do evento.
-      return certs
-    }
-    const key = getRefId(criterion.activity)
-    return certs.filter(c => getRefId(c.activity) === key)
-  }, [])
-
-  const handleOpenParticipantModal = useCallback(async (certificate: IProcessedCertificate, criterion?: ICriterion) => {
+  const handleOpenParticipantModal = useCallback(async (certificate: IProcessedCertificate, row: IModelRow) => {
     setCertificateSelected(certificate)
-    setActivitySelected(criterion?.activity?.name || '')
+    setActivitySelected(row.label)
     setParticipantSearch('')
     setOpenParticipantModal(true)
     if (!event?.id) return
@@ -218,7 +200,10 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
         console.warn('[EventCertificate] Limite de 100 certificados atingido. Podem existir mais registros não exibidos.')
       }
 
-      const matchingCerts = getMatchingCertificates(certs, criterion)
+      // Recalcula a linha com os certificados recém-buscados
+      const matchingCerts =
+        getModelRows(certificate, certificateList, activities, certs)
+          .find(freshRow => freshRow.key === row.key)?.certificates || []
 
       const seen = new Set<string>()
       const participants: IParticipant[] = []
@@ -248,7 +233,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
     } finally {
       setLoadingParticipants(false)
     }
-  }, [event, getMatchingCertificates])
+  }, [event, certificateList, activities])
 
   const handleCloseParticipantModal = useCallback(() => {
     setOpenParticipantModal(false)
@@ -313,7 +298,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
     <Container>
       <Grid cols={3}>
         {certificateList.map((certificate) => {
-          const rowCriterions = certificate.is_default ? defaultModelCriterions : certificate.criterions
+          const rows = rowsByModel.get(certificate.id) || []
 
           return (
             <CardContainer key={certificate.id}>
@@ -372,7 +357,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
                 )}
               </main>
               <div style={{ padding: '0 15px 15px' }}>
-                {rowCriterions.length > 0 ? (
+                {rows.length > 0 ? (
                   <Table>
                     <thead>
                       <tr>
@@ -383,14 +368,14 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {rowCriterions.map((criterion, index) => {
-                        const isCriterionDownloaded = getMatchingCertificates(allCertificates, criterion)
-                          .some(c => isDownloadedForModel(c, certificate))
+                      {rows.map((row, index) => {
+                        const isCriterionDownloaded = row.certificates
+                          .some(c => isDownloadedForModel(c, certificate.id, certificate.updatedAt))
 
                         return (
-                          <tr key={`${criterion.activity?.id}-${index}`}>
+                          <tr key={row.key}>
                             <td>{index + 1}</td>
-                            <td>{criterion.activity?.name}</td>
+                            <td>{row.label}</td>
                             <td>
                               <span
                                 title={isCriterionDownloaded ? 'Certificado já baixado' : 'Certificado ainda não baixado'}
@@ -410,7 +395,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
                                 color="info"
                                 type="button"
                                 title="Baixar certificado"
-                                onClick={() => handleOpenParticipantModal(certificate, criterion)}
+                                onClick={() => handleOpenParticipantModal(certificate, row)}
                               >
                                 <FiDownload size={18} />
                               </Button>

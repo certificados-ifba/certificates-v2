@@ -5,6 +5,7 @@ import { Grid } from '@components/grid'
 import { ICertificate, ITipoCertificado } from '@dtos'
 import { useToast } from '@providers'
 import { api } from '@services'
+import { criterionToRole } from '@utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiPlus } from 'react-icons/fi'
 
@@ -25,7 +26,9 @@ interface IApiModel {
     layout: any
   }>
   criterions: Array<{
-    activity: any
+    activity?: any
+    function?: any
+    type_activity?: any
   }>
   created_at: string
 }
@@ -36,13 +39,7 @@ function apiModelToCertificate(model: IApiModel): ICertificate {
   const frontPage = model.pages.find(p => p.type === 'frente')
   const versePage = model.pages.find(p => p.type === 'verso')
 
-  const roles = (model.criterions || []).map((c, index) => ({
-    number: index + 1,
-    activity: {
-      name: typeof c.activity === 'object' ? (c.activity?.name || '') : String(c.activity),
-      id: typeof c.activity === 'object' ? (c.activity?.value || c.activity?.id || '') : String(c.activity)
-    }
-  }))
+  const roles = (model.criterions || []).map(criterionToRole)
 
   return {
     id: model.id,
@@ -114,9 +111,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
     () =>
       models
         .filter(m => m.id !== editingModel?.id)
-        .flatMap(m => (m.criterions || []).map(c =>
-          typeof c.activity === 'object' ? String(c.activity?.id || c.activity?.value || '') : String(c.activity)
-        )),
+        .flatMap(m => (m.criterions || []).filter(c => c.activity).map(c => criterionToRole(c, 0).activity.id)),
     [models, editingModel]
   )
 
