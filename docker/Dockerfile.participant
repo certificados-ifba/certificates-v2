@@ -1,0 +1,28 @@
+FROM node:14-alpine
+
+WORKDIR /usr/src/app
+
+RUN yarn config set enableIPv6 false \
+    && yarn config set networkFamily ipv4 \
+    && yarn config set enable-http2 false
+
+COPY package.json yarn.lock prettier.config.js tsconfig.json .eslintrc.js .eslintignore ./
+COPY packages/shared ./packages/shared
+COPY packages/frontend/participant/package.json ./packages/frontend/participant/
+
+RUN yarn install --frozen-lockfile
+
+COPY packages/frontend/participant ./packages/frontend/participant
+
+ARG API_URI
+ARG HCAPTCHA_SITEKEY
+ARG WEB_URL
+ENV API_URI=$API_URI HCAPTCHA_SITEKEY=$HCAPTCHA_SITEKEY WEB_URL=$WEB_URL
+
+RUN yarn workspace @certificates/participant build
+
+WORKDIR /usr/src/app/packages/frontend/participant
+
+EXPOSE 3000
+
+CMD ["yarn", "start"]

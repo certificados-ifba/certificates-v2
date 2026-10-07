@@ -2,6 +2,9 @@ services:
   web:
     command: yarn workspace @certificates/web prod
     restart: always
+  participant:
+    command: yarn workspace @certificates/participant start
+    restart: always
   gateway:
     command: yarn workspace @certificates/gateway prod
     restart: always
