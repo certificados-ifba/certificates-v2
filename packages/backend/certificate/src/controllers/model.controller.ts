@@ -65,6 +65,20 @@ export class ModelController {
 
     if (modelBody) {
       try {
+        modelBody.criterions = this.uniqueCriterions(modelBody.criterions)
+        const conflicts = await this.modelService.findCriterionConflicts(
+          String(modelBody.event),
+          modelBody.criterions.map(criterion => String(criterion.activity))
+        )
+        if (conflicts.length > 0) {
+          return {
+            status: HttpStatus.CONFLICT,
+            message: 'model_create_conflict_activity',
+            model: null,
+            errors: { conflicts }
+          }
+        }
+
         const model = await this.modelService.createModel(modelBody)
         result = {
           status: HttpStatus.CREATED,
@@ -101,7 +115,27 @@ export class ModelController {
 
     if (params?.id && params?.model) {
       try {
-        const model = await this.modelService.updateModelById(params.id, params.model)
+        const current = await this.modelService.findModelById(params.id)
+        if (current && params.model.criterions) {
+          params.model.criterions = this.uniqueCriterions(params.model.criterions)
+          const conflicts = await this.modelService.findCriterionConflicts(
+            String(current.event),
+            params.model.criterions.map(criterion => String(criterion.activity)),
+            params.id
+          )
+          if (conflicts.length > 0) {
+            return {
+              status: HttpStatus.CONFLICT,
+              message: 'model_update_conflict_activity',
+              model: null,
+              errors: { conflicts }
+            }
+          }
+        }
+
+        const model = current
+          ? await this.modelService.updateModelById(params.id, params.model)
+          : null
         if (model) {
           result = {
             status: HttpStatus.OK,
@@ -177,5 +211,16 @@ export class ModelController {
     }
 
     return result
+  }
+
+  // A mesma atividade repetida no próprio modelo não muda nada: mantém uma só.
+  private uniqueCriterions<T extends { activity: any }>(criterions?: T[]): T[] {
+    const seen = new Set<string>()
+    return (criterions || []).filter(criterion => {
+      const activityId = String(criterion?.activity)
+      if (seen.has(activityId)) return false
+      seen.add(activityId)
+      return true
+    })
   }
 }

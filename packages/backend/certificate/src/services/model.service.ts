@@ -28,6 +28,33 @@ export class ModelService {
       .populate({ path: 'criterions.activity', populate: { path: 'type' } })
   }
 
+  // Cada atividade só pode ser critério de um modelo do evento. Devolve as
+  // atividades informadas que já pertencem a outro modelo (exceto exceptModelId).
+  public async findCriterionConflicts(
+    event: string,
+    activityIds: string[],
+    exceptModelId?: string
+  ): Promise<Array<{ activity: string; model: string }>> {
+    if (activityIds.length === 0) return []
+
+    const query: any = {
+      event: new Types.ObjectId(event),
+      'criterions.activity': { $in: activityIds.map(id => new Types.ObjectId(id)) }
+    }
+    if (exceptModelId) query._id = { $ne: new Types.ObjectId(exceptModelId) }
+
+    const models = await this.ModelModel.find(query).populate('criterions.activity')
+
+    return models.flatMap(model =>
+      model.criterions
+        .filter(criterion => activityIds.includes(String((criterion.activity as any)?._id || criterion.activity)))
+        .map(criterion => ({
+          activity: (criterion.activity as any)?.name || String(criterion.activity),
+          model: model.name
+        }))
+    )
+  }
+
   public async removeModelById(id: string): Promise<IModel> {
     return await this.ModelModel.findOneAndDelete({ _id: id })
   }

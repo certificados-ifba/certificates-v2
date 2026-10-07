@@ -109,6 +109,17 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
   const defaultModels = useMemo(() => models.filter(m => m.is_default), [models])
   const regularModels = useMemo(() => models.filter(m => !m.is_default), [models])
 
+  // Atividades já usadas como critério por outro modelo (o modelo em edição não conta)
+  const activityIdsInOtherModels = useMemo(
+    () =>
+      models
+        .filter(m => m.id !== editingModel?.id)
+        .flatMap(m => (m.criterions || []).map(c =>
+          typeof c.activity === 'object' ? String(c.activity?.id || c.activity?.value || '') : String(c.activity)
+        )),
+    [models, editingModel]
+  )
+
   return (
     <Container>
       {/* Formulário de adição/edição de modelo */}
@@ -124,6 +135,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
             modelData={editingModel as IModelData}
             onSuccess={handleAddCertificateSuccess}
             disableDefault={defaultModels.length > 0 && !editingModel?.is_default}
+            unavailableActivityIds={activityIdsInOtherModels}
           />
         </div>
       )}

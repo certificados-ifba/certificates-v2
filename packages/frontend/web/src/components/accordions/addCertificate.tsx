@@ -47,6 +47,8 @@ interface Props {
   modelData?: IModelData
   onSuccess?: () => void
   disableDefault?: boolean
+  // Atividades que já são critério de outro modelo do evento
+  unavailableActivityIds?: string[]
 }
 
 const AddCertificate: React.FC<Props> = ({
@@ -54,7 +56,8 @@ const AddCertificate: React.FC<Props> = ({
   edit,
   modelData,
   onSuccess,
-  disableDefault
+  disableDefault,
+  unavailableActivityIds
 }) => {
   const formRef = useRef<FormHandles>(null)
   const layoutFrontFormRef = useRef<FormHandles>(null)
@@ -335,6 +338,7 @@ const AddCertificate: React.FC<Props> = ({
         <Section paddingBottom="md">
           <Roles
             eventId={eventId}
+            unavailableActivityIds={unavailableActivityIds}
             id={edit ? 'edit' : 'add'}
             roles={initialRoles.length > 0 ? initialRoles : undefined}
             isDefault={isDefault}

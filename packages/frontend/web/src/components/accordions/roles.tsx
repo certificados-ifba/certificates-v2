@@ -4,6 +4,7 @@ import {
   MutableRefObject,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react'
@@ -33,10 +34,12 @@ interface Props {
   onDefaultChange?: (value: boolean) => void
   preview?: boolean
   roles?: IRole[]
+  // Atividades que já são critério de outro modelo do evento
+  unavailableActivityIds?: string[]
   id: string
 }
 
-const Roles: React.FC<Props> = ({ eventId, onFormChange, onRolesChange, isDefault, onDefaultChange, preview, roles, id }) => {
+const Roles: React.FC<Props> = ({ eventId, onFormChange, onRolesChange, isDefault, onDefaultChange, preview, roles, unavailableActivityIds, id }) => {
   const formRef = useRef<FormHandles>(null)
 
   const [roleList, setRoleList] = useState(roles || [])
@@ -76,6 +79,16 @@ const Roles: React.FC<Props> = ({ eventId, onFormChange, onRolesChange, isDefaul
     }
     loadOptions()
   }, [eventId])
+
+  // Uma atividade só pode ser critério de um modelo: esconde as que já estão
+  // em outro modelo do evento e as que já foram adicionadas neste.
+  const availableActivityOptions = useMemo(() => {
+    const takenIds = new Set([
+      ...(unavailableActivityIds || []),
+      ...roleList.map((role: any) => String(role.activity?.value || role.activity?.id || role.activity))
+    ])
+    return activityOptions.filter(option => !takenIds.has(String(option.value.value)))
+  }, [activityOptions, unavailableActivityIds, roleList])
 
   const atvID = 'addActivity' + (preview ? 'modal' : '') + id
 
@@ -144,7 +157,7 @@ const Roles: React.FC<Props> = ({ eventId, onFormChange, onRolesChange, isDefaul
                         formRef={formRef}
                         name={atvID}
                         isSearchable={false}
-                        options={activityOptions}
+                        options={availableActivityOptions}
                         isDisabled={isDefault}
                       />
                     </td>
@@ -213,7 +226,7 @@ const Roles: React.FC<Props> = ({ eventId, onFormChange, onRolesChange, isDefaul
               formRef={formRef}
               name={atvID}
               isSearchable={false}
-              options={activityOptions}
+              options={availableActivityOptions}
             />
           )}
         </main>
