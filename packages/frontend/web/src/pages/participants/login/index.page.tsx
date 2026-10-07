@@ -16,6 +16,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useCallback, useRef, useState } from 'react'
 import {
+  FiAward,
   FiCalendar,
   FiCheck,
   FiCreditCard,
@@ -115,6 +116,18 @@ const Login: React.FC = () => {
           >
             <FiCheck size={20} />
             <span>Validar Certificado</span>
+          </Button>
+          <Button
+            onClick={() => {
+              // Outro app: navegação completa, não router.push
+              window.location.href = process.env.participantURL
+            }}
+            size="small"
+            type="button"
+            inline
+          >
+            <FiAward size={20} />
+            <span>Nova tela do participante</span>
           </Button>
 
         </div>
