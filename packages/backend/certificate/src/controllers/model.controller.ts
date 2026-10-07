@@ -46,8 +46,11 @@ export class ModelController {
 
     const model = await this.modelService.findModelForCertificate(
       String(certificate.event),
-      String(certificate.activity?.type),
-      String(certificate.function)
+      {
+        activity: String((certificate.activity as any)?._id),
+        typeActivity: String(certificate.activity?.type),
+        function: String(certificate.function)
+      }
     )
 
     if (!model) {

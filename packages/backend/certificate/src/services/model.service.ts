@@ -104,22 +104,37 @@ export class ModelService {
     }
   }
 
+  // Mesma regra do admin (web/src/utils/certificateModels.ts): 1º modelo não
+  // padrão cujo critério bate com o certificado — pela atividade ou pelo
+  // formato antigo (tipo de atividade + função) —, senão o modelo padrão.
+  // A ordem (created_at ASC) é a mesma da listagem que o admin usa.
   public async findModelForCertificate(
     event: string,
-    typeActivity: string,
-    func: string
+    certificate: { activity: string; typeActivity: string; function: string }
   ): Promise<IModel> {
     const models = await this.ModelModel.find({
       event: new Types.ObjectId(event)
-    }).exec()
+    })
+      .sort({ created_at: 'ASC' })
+      .exec()
+
+    const criterionMatches = (criterion: any): boolean => {
+      if (criterion.activity) {
+        return String(criterion.activity) === certificate.activity
+      }
+      if (criterion.type_activity && criterion.function) {
+        return (
+          String(criterion.type_activity) === certificate.typeActivity &&
+          String(criterion.function) === certificate.function
+        )
+      }
+      return false
+    }
 
     return (
-      models.find(model =>
-        model.criterions?.some(
-          criterion =>
-            String(criterion.type_activity) === typeActivity &&
-            String(criterion.function) === func
-        )
+      models.find(
+        model =>
+          !model.is_default && (model.criterions || []).some(criterionMatches)
       ) ||
       models.find(model => model.is_default) ||
       null
