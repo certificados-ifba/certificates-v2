@@ -36,7 +36,13 @@ export class ModelController {
       params.id
     )
 
-    if (!certificate || String(certificate.participant) !== params.user) {
+    if (
+      !certificate ||
+      String(certificate.participant) !== params.user ||
+      !(await this.certificateService.isEventPublished(
+        String(certificate.event)
+      ))
+    ) {
       return {
         status: HttpStatus.NOT_FOUND,
         message: 'certificate_participant_model_not_found',

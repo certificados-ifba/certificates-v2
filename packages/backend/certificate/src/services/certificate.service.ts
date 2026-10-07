@@ -8,6 +8,7 @@ import { ICertificate } from '../interfaces/certificate.interface'
 import { IActivity } from '../interfaces/activity.interface'
 import { IGeneric } from '../interfaces/generic.interface'
 import { IParticipant } from '../interfaces/participant.interface'
+import { ITipoCertificado } from '../interfaces/tipo-certificado.interface'
 
 @Injectable()
 export class CertificateService {
@@ -19,7 +20,9 @@ export class CertificateService {
     @InjectModel('Generic')
     private readonly GenericModel: Model<IGeneric>,
     @InjectModel('User')
-    private readonly UserModel: Model<IParticipant>
+    private readonly UserModel: Model<IParticipant>,
+    @InjectModel('TipoCertificado')
+    private readonly TipoCertificadoModel: Model<ITipoCertificado>
   ) {}
 
   private getEndOfDay(date: string): Date {
@@ -35,6 +38,16 @@ export class CertificateService {
       .map(item => String(item).trim())
       .filter(item => Types.ObjectId.isValid(item))
       .map(item => new Types.ObjectId(item))
+  }
+
+  // O participante só vê e baixa certificados de evento publicado
+  public async isEventPublished(event: string): Promise<boolean> {
+    if (!Types.ObjectId.isValid(event)) return false
+    const count = await this.TipoCertificadoModel.countDocuments({
+      _id: new Types.ObjectId(event),
+      status: 'PUBLISHED'
+    })
+    return count > 0
   }
 
   public async createCertificate(
@@ -105,6 +118,7 @@ export class CertificateService {
   public async listCertificates({
     user,
     event,
+    onlyPublished,
     name,
     activity,
     typeActivity,
@@ -124,6 +138,18 @@ export class CertificateService {
 
     if (event) matchStage.event = new Types.ObjectId(event)
     if (user) matchStage.participant = new Types.ObjectId(user)
+    if (onlyPublished) {
+      // Listagem do próprio participante (me/certificates): só eventos publicados
+      const publishedEvents = await this.TipoCertificadoModel.find({
+        status: 'PUBLISHED',
+        ...(event ? { _id: new Types.ObjectId(event) } : {})
+      })
+        .select('_id')
+        .lean()
+      matchStage.event = {
+        $in: publishedEvents.map(({ _id }) => new Types.ObjectId(_id))
+      }
+    }
     if (name) {
       const formattedSearch = String(name).trim()
       const cpfSearch = formattedSearch.replace(/\D/g, '')

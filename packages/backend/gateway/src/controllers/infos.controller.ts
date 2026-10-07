@@ -78,6 +78,7 @@ export class InfosController {
         name: search,
         user: userInfo.id,
         event: event,
+        onlyPublished: true,
         page: Number(page),
         perPage: Number(per_page),
         sortBy: sort_by,
