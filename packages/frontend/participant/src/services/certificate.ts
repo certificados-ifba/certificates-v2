@@ -147,12 +147,26 @@ export async function downloadCertificatesZip(
   const zip = new JSZip()
   const ok: string[] = []
   const failed: string[] = []
+  const usedPaths = new Set<string>()
+
+  // Nomes iguais (ex.: edições do mesmo evento) não podem se sobrescrever
+  const uniquePath = (path: string) => {
+    let candidate = `${path}.pdf`
+    for (let copy = 2; usedPaths.has(candidate); copy++) {
+      candidate = `${path}_${copy}.pdf`
+    }
+    usedPaths.add(candidate)
+    return candidate
+  }
 
   for (const certificate of certificates) {
     try {
       const blob = await buildCertificate(certificate, participantName, token)
       const folder = sanitize(certificate.event?.name)
-      zip.file(`${folder}/${certificateFilename(certificate)}.pdf`, blob)
+      zip.file(
+        uniquePath(`${folder}/${certificateFilename(certificate)}`),
+        blob
+      )
       ok.push(certificate.id)
     } catch (err) {
       // Sessão expirada: interrompe, quem chamou manda para o login
