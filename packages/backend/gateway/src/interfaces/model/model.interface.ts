@@ -1,4 +1,5 @@
 import { ITipoCertificado } from '../tipo-certificado/tipo-certificado.interface'
+import { IActivity } from '../activity/activity.interface'
 import { IGeneric } from '../generic/generic.interface'
 
 interface ILayout {
@@ -19,8 +20,10 @@ export interface IPage {
 }
 
 export interface ICriterion {
-  function: IGeneric
-  type_activity: IGeneric
+  activity?: IActivity
+  // Formato antigo (tipo de atividade + função)
+  function?: IGeneric
+  type_activity?: IGeneric
 }
 
 export interface IModel {

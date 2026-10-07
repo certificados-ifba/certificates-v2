@@ -4,6 +4,7 @@ import {
   MutableRefObject,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react'
@@ -26,21 +27,23 @@ import { Select } from '../select'
 import { Table } from '../table'
 
 interface Props {
+  eventId?: string
   onFormChange: (formRef: MutableRefObject<FormHandles>) => void
   onRolesChange?: (roles: IRole[]) => void
   isDefault?: boolean
   onDefaultChange?: (value: boolean) => void
   preview?: boolean
   roles?: IRole[]
+  // Atividades que já são critério de outro modelo do evento
+  unavailableActivityIds?: string[]
   id: string
 }
 
-const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefaultChange, preview, roles, id }) => {
+const Roles: React.FC<Props> = ({ eventId, onFormChange, onRolesChange, isDefault, onDefaultChange, preview, roles, unavailableActivityIds, id }) => {
   const formRef = useRef<FormHandles>(null)
 
   const [roleList, setRoleList] = useState(roles || [])
   const [activityOptions, setActivityOptions] = useState<any[]>([])
-  const [functionOptions, setFunctionOptions] = useState<any[]>([])
 
   useEffect(() => {
     onFormChange(formRef)
@@ -59,34 +62,34 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
   }, [isDefault])
 
   useEffect(() => {
+    if (!eventId) return
     const loadOptions = async () => {
       try {
-        const [actRes, funcRes] = await Promise.all([
-          api.get('/activity_types', { params: { sort_by: 'name', order_by: 'ASC' } }),
-          api.get('/functions', { params: { sort_by: 'name', order_by: 'ASC' } })
-        ])
-        const activities = (actRes.data?.data?.generics || actRes.data?.data || [])
-        const functions = (funcRes.data?.data?.generics || funcRes.data?.data || [])
+        const actRes = await api.get(`tipos-certificado/${eventId}/activities`, { params: { sort_by: 'name', order_by: 'ASC' } })
+        const activities = (actRes.data?.data || [])
         setActivityOptions(
           activities.map((item: any) => ({
             value: { name: item.name, value: item.id },
-            label: item.name.charAt(0).toUpperCase() + item.name.slice(1)
-          }))
-        )
-        setFunctionOptions(
-          functions.map((item: any) => ({
-            value: { name: item.name, value: item.id },
-            label: item.name.charAt(0).toUpperCase() + item.name.slice(1)
+            label: item.name
           }))
         )
       } catch (err) {
-        console.error('Erro ao carregar opções de critérios:', err)
+        console.error('Erro ao carregar atividades do evento:', err)
       }
     }
     loadOptions()
-  }, [])
+  }, [eventId])
 
-  const funcID = 'addFunction' + (preview ? 'modal' : '') + id
+  // Uma atividade só pode ser critério de um modelo: esconde as que já estão
+  // em outro modelo do evento e as que já foram adicionadas neste.
+  const availableActivityOptions = useMemo(() => {
+    const takenIds = new Set([
+      ...(unavailableActivityIds || []),
+      ...roleList.map((role: any) => String(role.activity?.value || role.activity?.id || role.activity))
+    ])
+    return activityOptions.filter(option => !takenIds.has(String(option.value.value)))
+  }, [activityOptions, unavailableActivityIds, roleList])
+
   const atvID = 'addActivity' + (preview ? 'modal' : '') + id
 
   const tableStyle: any = {}
@@ -96,27 +99,23 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
   const [openModal, setOpenModal] = useState(false)
 
   const addRole = useCallback(() => {
-    const addFunction = formRef.current.getFieldValue(funcID)
     const addActivity = formRef.current.getFieldValue(atvID)
     const error: any = {}
-    if (!addFunction) error[funcID] = 'Por favor, selecione uma função'
     if (!addActivity) error[atvID] = 'Por favor, selecione uma atividade'
     formRef.current.setErrors(error)
-    if (!error[funcID] && !error[atvID]) {
+    if (!error[atvID]) {
       setRoleList([
         ...roleList,
         {
           activity: addActivity,
-          function: addFunction,
           number:
             roleList.length === 0 ? 1 : roleList[roleList.length - 1].number + 1
         }
       ])
-      formRef.current.setFieldValue(funcID, null)
       formRef.current.setFieldValue(atvID, null)
       setOpenModal(false)
     }
-  }, [funcID, roleList, atvID])
+  }, [roleList, atvID])
 
   return (
     <Form
@@ -133,7 +132,7 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
           <Section paddingTop={preview ? 'md' : undefined} paddingBottom="md">
             <Alert type="warning" icon={FiAlertCircle}>
               Atenção! Este certificado será utilizado para atividades
-              e funções que não possuem um modelo definido.<br />
+              que não possuem um modelo definido.<br />
               <b>Verifique se o texto é adequado para esses casos.</b>
             </Alert>
           </Section>
@@ -144,8 +143,7 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
             <thead>
               <tr>
                 <th>Nº</th>
-                <th style={tableStyle}>Tipo de Atividade</th>
-                <th style={tableStyle}>Função</th>
+                <th style={tableStyle}>Atividade</th>
                 <th></th>
               </tr>
             </thead>
@@ -159,16 +157,7 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
                         formRef={formRef}
                         name={atvID}
                         isSearchable={false}
-                        options={activityOptions}
-                        isDisabled={isDefault}
-                      />
-                    </td>
-                    <td>
-                      <Select
-                        formRef={formRef}
-                        name={funcID}
-                        isSearchable={false}
-                        options={functionOptions}
+                        options={availableActivityOptions}
                         isDisabled={isDefault}
                       />
                     </td>
@@ -193,7 +182,6 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
                 <tr key={role.number}>
                   <td>{index + 1}</td>
                   <td>{role.activity.name}</td>
-                  <td>{role.function.name}</td>
                   <td>
                     {!preview && (
                       <Button
@@ -233,23 +221,13 @@ const Roles: React.FC<Props> = ({ onFormChange, onRolesChange, isDefault, onDefa
         </header>
         <main>
           {preview && (
-            <>
-              <Select
-                marginBottom="sm"
-                label="Tipo de Atividade"
-                formRef={formRef}
-                name={atvID}
-                isSearchable={false}
-                options={activityOptions}
-              />
-              <Select
-                label="Função"
-                formRef={formRef}
-                name={funcID}
-                isSearchable={false}
-                options={functionOptions}
-              />
-            </>
+            <Select
+              label="Atividade"
+              formRef={formRef}
+              name={atvID}
+              isSearchable={false}
+              options={availableActivityOptions}
+            />
           )}
         </main>
         <footer>

@@ -10,7 +10,9 @@ import { IModel } from '../interfaces/model.interface'
 export class ModelService {
   constructor(
     @InjectModel('Model')
-    private readonly ModelModel: Model<IModel>
+    private readonly ModelModel: Model<IModel>,
+    @InjectModel('Activity')
+    private readonly ActivityModel: Model<any>
   ) { }
 
   public async createModel(modelBody: IModel): Promise<IModel> {
@@ -20,14 +22,51 @@ export class ModelService {
 
   public async findModelById(id: string): Promise<IModel> {
     return await this.ModelModel.findById(id)
+      .populate({ path: 'criterions.activity', populate: { path: 'type' } })
       .populate('criterions.function')
       .populate('criterions.type_activity')
   }
 
   public async updateModelById(id: string, modelBody: Partial<IModel>): Promise<IModel> {
     return await this.ModelModel.findByIdAndUpdate(id, modelBody, { new: true })
+      .populate({ path: 'criterions.activity', populate: { path: 'type' } })
       .populate('criterions.function')
       .populate('criterions.type_activity')
+  }
+
+  // Cada atividade só pode ser critério de um modelo do evento. Devolve as
+  // atividades informadas que já pertencem a outro modelo (exceto exceptModelId).
+  public async findCriterionConflicts(
+    event: string,
+    activityIds: string[],
+    exceptModelId?: string
+  ): Promise<Array<{ activity: string; model: string }>> {
+    if (activityIds.length === 0) return []
+
+    const query: any = {
+      event: new Types.ObjectId(event),
+      'criterions.activity': { $in: activityIds.map(id => new Types.ObjectId(id)) }
+    }
+    if (exceptModelId) query._id = { $ne: new Types.ObjectId(exceptModelId) }
+
+    // Compara pelos ids gravados (sem populate): atividade apagada também conta
+    const models = await this.ModelModel.find(query).lean()
+    const conflicts = models.flatMap(model =>
+      (model.criterions || [])
+        .filter(criterion => activityIds.includes(String(criterion.activity)))
+        .map(criterion => ({ activityId: String(criterion.activity), model: model.name }))
+    )
+
+    const activities = await this.ActivityModel.find(
+      { _id: { $in: conflicts.map(conflict => new Types.ObjectId(conflict.activityId)) } },
+      'name'
+    ).lean()
+    const activityNames = new Map(activities.map(activity => [String(activity._id), activity.name]))
+
+    return conflicts.map(conflict => ({
+      activity: activityNames.get(conflict.activityId) || conflict.activityId,
+      model: conflict.model
+    }))
   }
 
   public async removeModelById(id: string): Promise<IModel> {
@@ -48,6 +87,7 @@ export class ModelService {
     const sort = { [sortBy]: orderBy }
 
     const models = await this.ModelModel.find(query)
+      .populate({ path: 'criterions.activity', populate: { path: 'type' } })
       .populate('criterions.function')
       .populate('criterions.type_activity')
       .skip(perPage * (page - 1))

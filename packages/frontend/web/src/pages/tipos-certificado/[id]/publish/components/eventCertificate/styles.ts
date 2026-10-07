@@ -33,9 +33,9 @@ export const CardContainer = styled.div`
   }
   footer {
     display: flex;
-    button {
-      margin-left: auto;
-    }
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
     padding: 15px 10px;
     border-top: 2px solid ${props => props.theme.colors.lightShade};
   }

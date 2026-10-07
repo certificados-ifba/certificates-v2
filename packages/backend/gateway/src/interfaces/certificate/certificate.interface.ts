@@ -15,4 +15,5 @@ export interface ICertificate {
   end_date: Date
   authorship_order?: string
   additional_field?: string
+  downloads?: Array<{ model: string; downloaded_at: Date }>
 }

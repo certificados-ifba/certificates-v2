@@ -24,7 +24,6 @@ interface ICertificate {
   roles?: Array<{
     number: number
     activity: { name: string; id: string }
-    function: { name: string; id: string }
   }>
   is_default?: boolean
   edit?: boolean
@@ -34,59 +33,9 @@ interface ICertificate {
 export interface IRole {
   number: number
   activity: { name: string; id: string }
-  function: { name: string; id: string }
+  // Critério no formato antigo (tipo de atividade + função), preservado ao salvar
+  legacy?: { type_activity: string; function: string }
 }
 
 export type { ICertificate }
 export default ICertificate
-
-export interface ILayout {
-  padding: string
-  horizontal_padding: string
-  vertical_padding: string
-  position: string
-  horizontal_position: string
-  vertical_position: string
-}
-
-interface IPage {
-  type: 'frente' | 'verso'
-  text: string
-  image: string
-  layout: ILayout
-}
-
-interface ICriterion {
-  type_activity_id: string
-  function_id: string
-}
-
-export type { ICriterion }
-
-export interface IModelCertificate {
-  name: string
-  pages: IPage[]
-  criterions: ICriterion[]
-  is_default?: boolean
-}
-
-// export interface ILayout {
-//   img: string
-//   text: string
-// }
-
-// export interface IRole {
-//   number: number
-//   activity: { name: string; id: string }
-//   function: { name: string; id: string }
-// }
-
-// export interface ICertificate {
-//   name: string
-//   front: ILayout
-//   verse?: ILayout
-//   roles: IRole[]
-//   edit?: boolean
-//   id: string
-//   confirmed?: boolean
-// }

@@ -9,10 +9,17 @@ import {
 import { withAuth } from '@hocs'
 import { useToast } from '@providers'
 import { api } from '@services'
+import { getModelRows, isModelRowPending } from '@utils'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
-import { FiCheck, FiChevronLeft, FiChevronRight, FiSend } from 'react-icons/fi'
+import {
+  FiCheck,
+  FiChevronLeft,
+  FiChevronRight,
+  FiEye,
+  FiSend
+} from 'react-icons/fi'
 
 import { EventInfo } from '../components'
 import {
@@ -70,13 +77,36 @@ const Publish: React.FC = () => {
   const [step, setStep] = useState(0)
   const currentStep = stepNames[step]
 
+  // Evento já publicado: o wizard entra em modo de revisão (somente leitura /
+  // download). Não há passo "Pronto" nem ação de publicar.
+  const isPublished = event?.status === 'PUBLISHED'
+  const visibleSteps = isPublished
+    ? stepList.filter(s => s.name !== endName)
+    : stepList
+
   const publish = useCallback(async () => {
     setLoading(true)
     try {
-      // Validação: buscar modelos antes de publicar
-      const modelsResponse = await api.get(`tipos-certificado/${id}/models`)
-      const models: Array<{ is_default: boolean; criterions: any[] }> =
-        modelsResponse?.data?.data || []
+      // Validação: buscar modelos, certificados e atividades antes de publicar
+      const [modelsResponse, certsResponse, activitiesResponse] =
+        await Promise.all([
+          api.get(`tipos-certificado/${id}/models`),
+          api.get(`tipos-certificado/${id}/certificates`, {
+            params: { take: 100, skip: 0 }
+          }),
+          api.get(`tipos-certificado/${id}/activities`, {
+            params: { sort_by: 'name', order_by: 'ASC' }
+          })
+        ])
+      const models: Array<{
+        id: string
+        name: string
+        is_default: boolean
+        criterions: Array<{ activity?: any; function?: any; type_activity?: any }>
+        updated_at?: string
+      }> = modelsResponse?.data?.data || []
+      const certificates: any[] = certsResponse?.data?.data || []
+      const activities: any[] = activitiesResponse?.data?.data || []
 
       const hasDefaultModel = models.some(m => m.is_default)
       if (!hasDefaultModel) {
@@ -105,6 +135,25 @@ const Publish: React.FC = () => {
         return false
       }
 
+      // Validação: todo modelo precisa ter seus certificados baixados (mesmas
+      // linhas que o assistente mostra; linha sem certificado não pende)
+      const pendingModels = models.filter(model =>
+        getModelRows(model, models, activities, certificates).some(row =>
+          isModelRowPending(row, model.id, model.updated_at)
+        )
+      )
+      if (pendingModels.length > 0) {
+        addToast({
+          type: 'error',
+          title: 'Certificados não baixados',
+          description: `Baixe ao menos um certificado de cada atividade antes de publicar. Modelos pendentes: ${pendingModels
+            .map(m => m.name)
+            .join(', ')}.`
+        })
+        setLoading(false)
+        return false
+      }
+
       await api.post(`tipos-certificado/${id}/publish`, {})
       setLoading(false)
       return true
@@ -122,16 +171,28 @@ const Publish: React.FC = () => {
   return (
     <Container>
       <Head>
-        <title>Publicar {event?.name} | Evento</title>
+        <title>
+          {isPublished ? 'Revisar' : 'Publicar'} {event?.name} | Evento
+        </title>
       </Head>
-      <Header title={`Publicar ${event?.name}`} icon={FiSend} />
+      <Header
+        title={`${isPublished ? 'Revisar' : 'Publicar'} ${event?.name}`}
+        icon={isPublished ? FiEye : FiSend}
+      />
       {currentStep !== endName && (
-        <Alert marginBottom="md" card={true} type="warning">
-          <b>Atenção!</b> Revise as informações antes de publicar o evento.
+        <Alert
+          marginBottom="md"
+          card={true}
+          type={isPublished ? 'success' : 'warning'}
+        >
+          <b>Atenção!</b>{' '}
+          {isPublished
+            ? 'Esse evento já está publicado. Você pode revisar as informações e baixar os certificados.'
+            : 'Revise as informações antes de publicar o evento.'}
         </Alert>
       )}
       {currentStep !== endName && (
-        <Stepper steps={stepList} current={step} />
+        <Stepper steps={visibleSteps} current={step} />
       )}
       <Card>
         <CardHeader>
@@ -163,9 +224,13 @@ const Publish: React.FC = () => {
               if (currentStep === endName) {
                 router.push(`/tipos-certificado/${event.id}/info`)
               } else if (currentStep === certificateName) {
-                publish().then(success => {
-                  if (success) setStep(s => s + 1)
-                })
+                if (isPublished) {
+                  router.push(`/tipos-certificado/${event.id}/info`)
+                } else {
+                  publish().then(success => {
+                    if (success) setStep(s => s + 1)
+                  })
+                }
               } else {
                 setStep(s => s + 1)
               }
@@ -181,7 +246,7 @@ const Publish: React.FC = () => {
             {currentStep === certificateName && (
               <>
                 <FiCheck size={20} />
-                <span>Publicar</span>
+                <span>{isPublished ? 'Concluir revisão' : 'Publicar'}</span>
               </>
             )}
             {currentStep !== certificateName && currentStep !== endName && (

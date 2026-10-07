@@ -5,6 +5,7 @@ import { Grid } from '@components/grid'
 import { ICertificate, ITipoCertificado } from '@dtos'
 import { useToast } from '@providers'
 import { api } from '@services'
+import { criterionToRole } from '@utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiPlus } from 'react-icons/fi'
 
@@ -25,8 +26,9 @@ interface IApiModel {
     layout: any
   }>
   criterions: Array<{
-    function: any
-    type_activity: any
+    activity?: any
+    function?: any
+    type_activity?: any
   }>
   created_at: string
 }
@@ -37,17 +39,7 @@ function apiModelToCertificate(model: IApiModel): ICertificate {
   const frontPage = model.pages.find(p => p.type === 'frente')
   const versePage = model.pages.find(p => p.type === 'verso')
 
-  const roles = (model.criterions || []).map((c, index) => ({
-    number: index + 1,
-    activity: {
-      name: typeof c.type_activity === 'object' ? (c.type_activity?.name || '') : String(c.type_activity),
-      id: typeof c.type_activity === 'object' ? (c.type_activity?.value || c.type_activity?.id || '') : String(c.type_activity)
-    },
-    function: {
-      name: typeof c.function === 'object' ? (c.function?.name || '') : String(c.function),
-      id: typeof c.function === 'object' ? (c.function?.value || c.function?.id || '') : String(c.function)
-    }
-  }))
+  const roles = (model.criterions || []).map(criterionToRole)
 
   return {
     id: model.id,
@@ -114,6 +106,15 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
   const defaultModels = useMemo(() => models.filter(m => m.is_default), [models])
   const regularModels = useMemo(() => models.filter(m => !m.is_default), [models])
 
+  // Atividades já usadas como critério por outro modelo (o modelo em edição não conta)
+  const activityIdsInOtherModels = useMemo(
+    () =>
+      models
+        .filter(m => m.id !== editingModel?.id)
+        .flatMap(m => (m.criterions || []).filter(c => c.activity).map(c => criterionToRole(c, 0).activity.id)),
+    [models, editingModel]
+  )
+
   return (
     <Container>
       {/* Formulário de adição/edição de modelo */}
@@ -129,6 +130,7 @@ export const EventCertificate: React.FC<Props> = ({ event }) => {
             modelData={editingModel as IModelData}
             onSuccess={handleAddCertificateSuccess}
             disableDefault={defaultModels.length > 0 && !editingModel?.is_default}
+            unavailableActivityIds={activityIdsInOtherModels}
           />
         </div>
       )}

@@ -14,7 +14,7 @@ import { useAdvancedFilters } from '@hooks'
 import { useToast } from '@providers'
 import { api, usePaginatedRequest } from '@services'
 import { generateCertificatePdf } from '@services/pdf'
-import { capitalize, maskCpf } from '@utils'
+import { capitalize, findModelForCertificate, maskCpf } from '@utils'
 import { useRouter } from 'next/router'
 import { useCallback, useMemo, useState } from 'react'
 import {
@@ -46,6 +46,7 @@ interface ICertificate {
   end_date: Date
   authorship_order: string
   additional_field: string
+  downloads?: Array<{ model: string; downloaded_at: string }>
   created_at: Date
   updated_at: Date
 }
@@ -55,8 +56,10 @@ interface IRequest {
 }
 
 interface IModelCriterion {
-  function: IGeneric
-  type_activity: IGeneric
+  activity?: IActivity
+  // Formato antigo (tipo de atividade + função)
+  function?: IGeneric
+  type_activity?: IGeneric
 }
 
 interface IModel {
@@ -89,8 +92,6 @@ const formatDateRange = (startDate: Date | string, endDate: Date | string) => {
     options
   )} a ${end.toLocaleDateString('pt-BR', options)}`
 }
-
-const getRefId = (value: any) => String(value?.id || value?._id || value || '')
 
 const substituteCertificateText = (
   html: string,
@@ -320,16 +321,7 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
           return
         }
 
-        const activityTypeId = getRefId(certificate.activity?.type)
-        const functionId = getRefId(certificate.function)
-        const selectedModel =
-          models.find(model =>
-            model.criterions?.some(
-              criterion =>
-                getRefId(criterion.type_activity) === activityTypeId &&
-                getRefId(criterion.function) === functionId
-            )
-          ) || models.find(model => model.is_default)
+        const selectedModel = findModelForCertificate(models, certificate)
 
         if (!selectedModel) {
           addToast({
@@ -354,8 +346,7 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
             certificate,
             { tipoAtividade, funcao: criterioVisualizado }
           ),
-          validationCode:
-            page.type === 'frente' ? certificate.key : undefined,
+          validationCode: certificate.key,
           layout: page.layout,
         }))
 
@@ -363,6 +354,16 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
           filename: `certificado_${certificate.key || certificate.id}`,
           pages,
         })
+
+        try {
+          await api.patch(
+            `tipos-certificado/${event?.id}/certificates/${certificate.id}/download`,
+            { model_id: selectedModel.id }
+          )
+          request.revalidate()
+        } catch (markErr) {
+          console.error('Erro ao marcar certificado como baixado:', markErr)
+        }
       } catch (err) {
         addToast({
           type: 'error',
@@ -371,7 +372,7 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
         })
       }
     },
-    [addToast, event]
+    [addToast, event, request]
   )
 
   return (

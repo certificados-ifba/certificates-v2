@@ -65,6 +65,20 @@ export class ModelController {
 
     if (modelBody) {
       try {
+        modelBody.criterions = this.uniqueCriterions(modelBody.criterions)
+        const conflicts = await this.modelService.findCriterionConflicts(
+          String(modelBody.event),
+          this.criterionActivityIds(modelBody.criterions)
+        )
+        if (conflicts.length > 0) {
+          return {
+            status: HttpStatus.CONFLICT,
+            message: 'model_create_conflict_activity',
+            model: null,
+            errors: { conflicts }
+          }
+        }
+
         const model = await this.modelService.createModel(modelBody)
         result = {
           status: HttpStatus.CREATED,
@@ -95,13 +109,36 @@ export class ModelController {
   @MessagePattern('model_update')
   public async modelUpdate(params: {
     id: string
+    event: string
     model: Partial<import('../interfaces/model.interface').IModel>
   }): Promise<IModelUpdateResponse> {
     let result: IModelUpdateResponse
 
     if (params?.id && params?.model) {
       try {
-        const model = await this.modelService.updateModelById(params.id, params.model)
+        const found = await this.modelService.findModelById(params.id)
+        // Só atualiza modelo do evento informado (o dono foi conferido no gateway)
+        const current = found && String(found.event) === String(params.event) ? found : null
+        if (current && params.model.criterions) {
+          params.model.criterions = this.uniqueCriterions(params.model.criterions)
+          const conflicts = await this.modelService.findCriterionConflicts(
+            String(current.event),
+            this.criterionActivityIds(params.model.criterions),
+            params.id
+          )
+          if (conflicts.length > 0) {
+            return {
+              status: HttpStatus.CONFLICT,
+              message: 'model_update_conflict_activity',
+              model: null,
+              errors: { conflicts }
+            }
+          }
+        }
+
+        const model = current
+          ? await this.modelService.updateModelById(params.id, params.model)
+          : null
         if (model) {
           result = {
             status: HttpStatus.OK,
@@ -177,5 +214,28 @@ export class ModelController {
     }
 
     return result
+  }
+
+  // O mesmo critério repetido no próprio modelo não muda nada: mantém um só.
+  // Critério antigo (sem atividade) é identificado por tipo + função.
+  private uniqueCriterions<T extends { activity?: any; function?: any; type_activity?: any }>(
+    criterions?: T[]
+  ): T[] {
+    const seen = new Set<string>()
+    return (criterions || []).filter(criterion => {
+      const key = criterion?.activity
+        ? String(criterion.activity)
+        : `${criterion?.type_activity}|${criterion?.function}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }
+
+  // A regra "uma atividade por modelo" só vale para critérios por atividade.
+  private criterionActivityIds(criterions: Array<{ activity?: any }>): string[] {
+    return criterions
+      .filter(criterion => criterion.activity)
+      .map(criterion => String(criterion.activity))
   }
 }

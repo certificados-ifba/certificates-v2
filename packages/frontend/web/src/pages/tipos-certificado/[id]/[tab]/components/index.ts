@@ -4,8 +4,6 @@ export { CertificateForm } from './certificateForm'
 export { CertificateInfo } from './certificateInfo'
 export { CertificateLayout } from './certificateLayout'
 export { CertificateList } from './certificateList'
-export { CertificatePreview } from './certificatePreview'
 export { EventCertificate } from './eventCertificate'
 export { EventParticipant } from './eventParticipant'
-export { Roles } from './roles'
 

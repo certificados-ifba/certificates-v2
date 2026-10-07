@@ -61,6 +61,14 @@ export const getErrorMessage = (
             .join(', ')
         : 'Dados inválidos para criar o modelo de certificado.'
       break
+    case 'model_create_conflict_activity':
+    case 'model_update_conflict_activity':
+      message = `Cada atividade só pode pertencer a um modelo. Já vinculada: ${(
+        errors?.conflicts || []
+      )
+        .map((conflict: any) => `${conflict.activity} (${conflict.model})`)
+        .join(', ')}.`
+      break
     case 'model_create_bad_request':
       message = 'Dados incompletos para criar o modelo de certificado.'
       break

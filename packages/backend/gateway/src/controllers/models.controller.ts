@@ -175,9 +175,28 @@ export class ModelsController {
   ): Promise<UpdateModelResponseDto> {
     const { name, pages, criterions, is_default } = certificateRequest
 
+    const eventResponse: IServiceTipoCertificadoGetByIdResponse = await this.eventServiceClient
+      .send('tipo_certificado_get_by_id', {
+        id: params.event_id,
+        user: request.user
+      })
+      .toPromise()
+
+    if (eventResponse.status !== HttpStatus.OK) {
+      throw new HttpException(
+        {
+          message: eventResponse.message,
+          data: null,
+          errors: null
+        },
+        eventResponse.status
+      )
+    }
+
     const updateModelResponse: IServiceModelUpdateResponse = await this.certificateServiceClient
       .send('model_update', {
         id: params.id,
+        event: eventResponse.data.event.id,
         model: {
           name,
           pages,

@@ -19,6 +19,7 @@ import api from '../../services/axios'
 import { Footer, Section } from '../../styles/components/accordion'
 import { Divider } from '../../styles/components/divider'
 import { Row } from '../../styles/components/grid'
+import { criterionToRole, roleToCriterion } from '../../utils/certificateModels'
 import { getValidationErrors } from '../../utils/getValidationErrors'
 import { Accordion } from '../accordion'
 import { Button } from '../button'
@@ -37,8 +38,9 @@ export interface IModelData {
     layout: any
   }>
   criterions: Array<{
-    function: any
-    type_activity: any
+    activity?: any
+    function?: any
+    type_activity?: any
   }>
 }
 
@@ -48,6 +50,8 @@ interface Props {
   modelData?: IModelData
   onSuccess?: () => void
   disableDefault?: boolean
+  // Atividades que já são critério de outro modelo do evento
+  unavailableActivityIds?: string[]
 }
 
 const AddCertificate: React.FC<Props> = ({
@@ -55,7 +59,8 @@ const AddCertificate: React.FC<Props> = ({
   edit,
   modelData,
   onSuccess,
-  disableDefault
+  disableDefault,
+  unavailableActivityIds
 }) => {
   const formRef = useRef<FormHandles>(null)
   const layoutFrontFormRef = useRef<FormHandles>(null)
@@ -65,17 +70,7 @@ const AddCertificate: React.FC<Props> = ({
   const [rolesFormRef, setRolesFormRef] = useState(null)
 
   // Extrair roles iniciais do modelData
-  const initialRoles: IRole[] = (modelData?.criterions || []).map((c, index) => ({
-    number: index + 1,
-    activity: {
-      name: typeof c.type_activity === 'object' ? (c.type_activity?.name || '') : '',
-      id: typeof c.type_activity === 'object' ? (c.type_activity?.id || c.type_activity?.value || '') : String(c.type_activity)
-    },
-    function: {
-      name: typeof c.function === 'object' ? (c.function?.name || '') : '',
-      id: typeof c.function === 'object' ? (c.function?.id || c.function?.value || '') : String(c.function)
-    }
-  }))
+  const initialRoles: IRole[] = (modelData?.criterions || []).map(criterionToRole)
 
   const [collectedRoles, setCollectedRoles] = useState<any[]>(initialRoles)
   const [loading, setLoading] = useState(false)
@@ -126,7 +121,7 @@ const AddCertificate: React.FC<Props> = ({
             type: 'error',
             title: 'Critérios ausentes',
             description:
-              'Modelos não-padrão precisam ter pelo menos um critério (função + tipo de atividade) cadastrado.'
+              'Modelos não-padrão precisam ter pelo menos um critério (atividade) cadastrado.'
           })
           setLoading(false)
           return
@@ -201,10 +196,7 @@ const AddCertificate: React.FC<Props> = ({
         }
 
         // Coletar critérios
-        const criterions = collectedRoles.map(role => ({
-            function: role.function?.value || role.function?.id || role.function,
-            type_activity: role.activity?.value || role.activity?.id || role.activity
-          }))
+        const criterions = collectedRoles.map(roleToCriterion)
 
         const payload = {
           name: data.name,
@@ -340,6 +332,8 @@ const AddCertificate: React.FC<Props> = ({
         </Section>
         <Section paddingBottom="md">
           <Roles
+            eventId={eventId}
+            unavailableActivityIds={unavailableActivityIds}
             id={edit ? 'edit' : 'add'}
             roles={initialRoles.length > 0 ? initialRoles : undefined}
             isDefault={isDefault}
