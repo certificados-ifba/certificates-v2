@@ -95,15 +95,46 @@ export const certificateFilename = (certificate: RawCertificate): string =>
 export const isUnauthorized = (err: any): boolean =>
   err?.response?.status === 401
 
-export async function buildCertificate(
+// Certificados com o mesmo evento, atividade e função usam o mesmo modelo
+type ModelCache = Map<string, Promise<ModelPage[]>>
+
+const fetchModelPages = async (
   certificate: RawCertificate,
-  participantName: string,
   token: string
-): Promise<Blob> {
+): Promise<ModelPage[]> => {
   const { data } = await api.get(`me/certificates/${certificate.id}/model`, {
     headers: { authorization: `Bearer ${token}` }
   })
-  const modelPages: ModelPage[] = data?.data?.model?.pages || []
+  return data?.data?.model?.pages || []
+}
+
+const getModelPages = (
+  certificate: RawCertificate,
+  token: string,
+  cache?: ModelCache
+): Promise<ModelPage[]> => {
+  if (!cache) return fetchModelPages(certificate, token)
+  const cacheKey = [
+    certificate.event?.id,
+    certificate.activity?.id,
+    certificate.function?.id
+  ].join('|')
+  if (!cache.has(cacheKey)) {
+    const request = fetchModelPages(certificate, token)
+    // Falha não fica no cache: o próximo certificado tenta de novo
+    request.catch(() => cache.delete(cacheKey))
+    cache.set(cacheKey, request)
+  }
+  return cache.get(cacheKey)
+}
+
+export async function buildCertificate(
+  certificate: RawCertificate,
+  participantName: string,
+  token: string,
+  modelCache?: ModelCache
+): Promise<Blob> {
+  const modelPages = await getModelPages(certificate, token, modelCache)
 
   const pages: PdfPage[] = modelPages.map(page => ({
     backgroundImageUrl: page.image ? storageUrl(page.image) : undefined,
@@ -147,6 +178,7 @@ export async function downloadCertificatesZip(
   const zip = new JSZip()
   const ok: string[] = []
   const failed: string[] = []
+  const modelCache: ModelCache = new Map()
   const usedPaths = new Set<string>()
 
   // Nomes iguais (ex.: edições do mesmo evento) não podem se sobrescrever
@@ -161,7 +193,12 @@ export async function downloadCertificatesZip(
 
   for (const certificate of certificates) {
     try {
-      const blob = await buildCertificate(certificate, participantName, token)
+      const blob = await buildCertificate(
+        certificate,
+        participantName,
+        token,
+        modelCache
+      )
       const folder = sanitize(certificate.event?.name)
       zip.file(
         uniquePath(`${folder}/${certificateFilename(certificate)}`),
