@@ -31,7 +31,7 @@ export const CertificateSchema = new mongoose.Schema(
     },
     key: {
       type: String,
-      default: uuid()
+      default: () => uuid()
     },
     workload: {
       type: Number,
