@@ -362,7 +362,7 @@ export const CertificateList: React.FC<Props> = ({ event, openAccordion }) => {
 
         try {
           await api.patch(
-            `events/${event?.id}/certificates/${certificate.id}/download`,
+            `tipos-certificado/${event?.id}/certificates/${certificate.id}/download`,
             { model_id: selectedModel.id }
           )
           request.revalidate()
