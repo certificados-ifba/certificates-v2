@@ -4,6 +4,12 @@ services:
     user: '${UID:-1000}:${GID:-1000}'
     volumes:
       - ./packages/frontend/web:/usr/src/app/packages/frontend/web
+  participant:
+    command: yarn workspace @certificates/participant dev
+    volumes:
+      - ./packages/frontend/participant:/usr/src/app/packages/frontend/participant
+      - /usr/src/app/packages/frontend/participant/node_modules
+      - /usr/src/app/packages/frontend/participant/.next
   gateway:
     command: yarn workspace @certificates/gateway dev
     volumes:

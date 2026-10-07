@@ -1,4 +1,14 @@
-import { Controller, Get, Req, Res, Inject, Query } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Req,
+  Res,
+  Inject,
+  Query,
+  Param,
+  HttpException,
+  HttpStatus
+} from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
 import { ApiTags, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger'
 import { Response } from 'express'
@@ -7,6 +17,7 @@ import { Authorization } from '../decorators/authorization.decorator'
 import { Permission } from '../decorators/permission.decorator'
 import { ListCertificateResponseDto } from '../interfaces/certificate/dto/list-certificate-response.dto'
 import { ListCertificateDto } from '../interfaces/certificate/dto/list-certificate.dto'
+import { IServiceCertificateParticipantModelResponse } from '../interfaces/certificate/service-certificate-participant-model-response.interface'
 import { IServiceCertificateListResponse } from '../interfaces/certificate/service-certificate-list-response.interface'
 import { IAuthorizedRequest } from '../interfaces/common/authorized-request.interface'
 import { GetUserByTokenResponseDto } from '../interfaces/user/dto/get-user-by-token-response.dto'
@@ -67,6 +78,7 @@ export class InfosController {
         name: search,
         user: userInfo.id,
         event: event,
+        onlyPublished: true,
         page: Number(page),
         perPage: Number(per_page),
         sortBy: sort_by,
@@ -80,6 +92,37 @@ export class InfosController {
     return {
       message: certificatesResponse.message,
       data: certificatesResponse?.data?.certificates
+    }
+  }
+
+  @Get('certificates/:id/model')
+  @Authorization(true)
+  @Permission('certificate_download')
+  public async getCertificateModel(
+    @Req() request: IAuthorizedRequest,
+    @Param('id') id: string
+  ): Promise<IServiceCertificateParticipantModelResponse> {
+    const modelResponse: IServiceCertificateParticipantModelResponse = await this.certificateServiceClient
+      .send('certificate_participant_model', {
+        id,
+        user: request.user.id
+      })
+      .toPromise()
+
+    if (modelResponse.status !== HttpStatus.OK) {
+      throw new HttpException(
+        {
+          message: modelResponse.message,
+          data: null,
+          errors: null
+        },
+        modelResponse.status
+      )
+    }
+
+    return {
+      message: modelResponse.message,
+      data: modelResponse.data
     }
   }
 }

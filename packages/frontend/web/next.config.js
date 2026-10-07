@@ -16,6 +16,9 @@ module.exports = withImages({
     baseURL,
     siteKey: process.env?.HCAPTCHA_SITEKEY,
     sheetPass: process.env.SHEET_PASSWORD || '',
+    // Nova tela do participante (app @certificates/participant), em avaliação
+    participantURL:
+      process.env?.PARTICIPANT_URL || 'http://localhost:4002/participante',
   },
   images: {
     remotePatterns: [

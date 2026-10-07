@@ -1,0 +1,31 @@
+{
+  "private": true,
+  "name": "@certificates/participant",
+  "version": "1.0.0",
+  "license": "SEE LICENSE IN ../../../LICENSE",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3000",
+    "start": "next start -p 3000",
+    "prod": "next build && next start -p 3000"
+  },
+  "dependencies": {
+    "@hcaptcha/react-hcaptcha": "^0.3.7",
+    "axios": "^0.21.1",
+    "babel-plugin-styled-components": "^2.0.6",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "jszip": "^3.10.1",
+    "next": "10.0.9",
+    "react": "17.0.1",
+    "react-dom": "17.0.1",
+    "react-icons": "^4.2.0",
+    "styled-components": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "14.0.27",
+    "@types/react": "17.0.3",
+    "@types/styled-components": "^5.1.9",
+    "typescript": "^4.2.3"
+  }
+}
