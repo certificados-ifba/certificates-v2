@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import {
   FiAward,
+  FiBarChart2,
   FiCalendar,
   FiChevronLeft,
   FiEdit3,
@@ -19,7 +20,7 @@ import {
 } from 'react-icons/fi'
 
 import { EventActivity, EventInfo } from '../components'
-import { EventCertificate, EventParticipant } from './components'
+import { EventCertificate, EventDashboard, EventParticipant } from './components'
 
 const EventDetail: React.FC = () => {
   const { push, query } = useRouter()
@@ -144,6 +145,12 @@ const EventDetail: React.FC = () => {
             icon: FiAward,
             children: <EventParticipant event={event} />,
             path: 'certificates'
+          },
+          {
+            name: 'Dashboard',
+            icon: FiBarChart2,
+            children: <EventDashboard event={event} />,
+            path: 'dashboard'
           }
         ]}
       />

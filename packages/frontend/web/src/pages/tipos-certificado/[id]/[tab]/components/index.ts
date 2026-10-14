@@ -5,5 +5,5 @@ export { CertificateInfo } from './certificateInfo'
 export { CertificateLayout } from './certificateLayout'
 export { CertificateList } from './certificateList'
 export { EventCertificate } from './eventCertificate'
+export { EventDashboard } from './dashboard'
 export { EventParticipant } from './eventParticipant'
-
