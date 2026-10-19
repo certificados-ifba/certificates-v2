@@ -67,8 +67,7 @@ import {
   ActivitySubtitle,
   LoadingContainer,
   ColorBadge,
-  TableCellWithBadge,
-  IssuanceBadge
+  TableCellWithBadge
 } from './styles'
 
 interface Props {

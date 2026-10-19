@@ -323,14 +323,3 @@ export const TableCellWithBadge = styled.div`
   display: flex;
   align-items: center;
 `
-
-export const IssuanceBadge = styled.span`
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background-color: rgba(61, 170, 61, 0.12);
-  color: #2e7d32;
-`
