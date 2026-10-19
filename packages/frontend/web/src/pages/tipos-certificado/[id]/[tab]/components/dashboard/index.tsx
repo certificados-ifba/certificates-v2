@@ -146,10 +146,13 @@ const formatWorkload = (value: number) => {
   return `${hours}h ${minutes.toString().padStart(2, '0')}m`
 }
 
-const getGroupKey = (item: ICertificateDashboard, mode: FilterMode) => {
-  if (mode === 'function') return item.function?.id || item.function?.name || ''
+const NO_GROUP_KEY = '__none__'
 
-  return item.activity?.id || item.activity?.name || ''
+const getGroupKey = (item: ICertificateDashboard, mode: FilterMode) => {
+  if (mode === 'function')
+    return item.function?.id || item.function?.name || NO_GROUP_KEY
+
+  return item.activity?.id || item.activity?.name || NO_GROUP_KEY
 }
 
 const getGroupName = (item: ICertificateDashboard, mode: FilterMode) => {
@@ -158,30 +161,24 @@ const getGroupName = (item: ICertificateDashboard, mode: FilterMode) => {
   return item.activity?.name || 'Sem atividade'
 }
 
+/**
+ * Conta certificados por grupo (atividade ou função). Certificado sem
+ * atividade/função entra em "Sem atividade"/"Sem função", para o total
+ * bater com o card "Certificados emitidos".
+ */
 const createInitialChartRows = (
   certificates: ICertificateDashboard[],
   mode: FilterMode
 ) => {
-  const buckets = new Map<
-    string,
-    { name: string; participants: Set<string>; total: number }
-  >()
+  const buckets = new Map<string, { name: string; total: number }>()
 
   certificates.forEach(certificate => {
     const key = getGroupKey(certificate, mode)
-    if (!key) return
-
     const current = buckets.get(key) || {
       name: getGroupName(certificate, mode),
-      participants: new Set<string>(),
       total: 0
     }
 
-    const participantId =
-      certificate.participant?.id ||
-      certificate.participant?.name ||
-      certificate.id
-    current.participants.add(String(participantId))
     current.total += 1
     buckets.set(key, current)
   })
@@ -189,7 +186,7 @@ const createInitialChartRows = (
   const rows = Array.from(buckets.entries()).map(([key, value]) => ({
     key,
     name: value.name,
-    count: value.participants.size || value.total
+    count: value.total
   }))
 
   const total = rows.reduce((sum, row) => sum + row.count, 0)
@@ -642,13 +639,13 @@ export const EventDashboard: React.FC<Props> = ({ event }) => {
 
   const selectedFilterLabel =
     filterMode === 'activity'
-      ? 'Participantes por atividade'
-      : 'Participantes por função'
+      ? 'Certificados por atividade'
+      : 'Certificados por função'
 
   const filterOptions = useMemo(
     () => [
-      { label: 'Participantes por atividade', value: 'activity' },
-      { label: 'Participantes por função', value: 'function' }
+      { label: 'Certificados por atividade', value: 'activity' },
+      { label: 'Certificados por função', value: 'function' }
     ],
     []
   )
@@ -856,10 +853,10 @@ export const EventDashboard: React.FC<Props> = ({ event }) => {
           <DashboardCard>
             <PanelHeader>
               <div>
-                <PanelTitle>Análise de participantes</PanelTitle>
+                <PanelTitle>Análise de certificados</PanelTitle>
                 <PanelDescription>
-                  Visualize a distribuição dos participantes de acordo com o
-                  filtro selecionado.
+                  Visualize a distribuição dos certificados emitidos de acordo
+                  com o filtro selecionado.
                 </PanelDescription>
               </div>
               <FilterRow>
