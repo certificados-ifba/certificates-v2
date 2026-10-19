@@ -838,7 +838,11 @@ export const EventDashboard: React.FC<Props> = ({ event }) => {
               <CardLabel>Período do evento</CardLabel>
               <PeriodValue>{eventDuration}</PeriodValue>
               <SummaryValue>
-                {durationDays ? `${durationDays} dias de duração` : '-'}
+                {durationDays
+                  ? `${durationDays} dia${
+                      durationDays === 1 ? '' : 's'
+                    } de duração`
+                  : '-'}
               </SummaryValue>
             </div>
           </CardWrapper>
