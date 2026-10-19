@@ -322,15 +322,18 @@ export class CertificateService {
     return this.GenericModel.findById(id).exec()
   }
 
+  /** Number of certificates belonging to PUBLISHED events. */
   public async getCertificateIssued(): Promise<number> {
-    const certificates = await this.CertificateModel.aggregate()
+    const [result] = await this.CertificateModel.aggregate<{ total: number }>()
       .lookup({
-        from: 'events',
+        from: 'certifications', // TipoCertificado collection
         localField: 'event',
         foreignField: '_id',
         as: 'event'
       })
       .match({ 'event.status': 'PUBLISHED' })
-    return certificates?.length
+      .count('total')
+
+    return result?.total ?? 0
   }
 }

@@ -7,4 +7,5 @@ export interface ITipoCertificadoListParams {
   perPage?: number
   sortBy: string
   orderBy: 'ASC' | 'DESC'
+  status?: string
 }

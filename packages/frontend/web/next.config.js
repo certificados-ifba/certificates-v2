@@ -36,6 +36,11 @@ module.exports = withImages({
         permanent: true,
       },
       {
+        source: '/pagina-inicial',
+        destination: '/dashboard',
+        permanent: true,
+      },
+      {
         source: '/',
         destination: '/participants/login',
         permanent: true,

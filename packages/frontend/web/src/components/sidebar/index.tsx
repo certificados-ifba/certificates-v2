@@ -4,7 +4,7 @@ import { useAuth, SidebarContext } from '@providers'
 import { useEffect, useContext, useState } from 'react'
 import {
   FiCalendar,
-  FiHome,
+  FiBarChart2,
   FiSettings,
   FiUserCheck,
   FiUsers
@@ -35,8 +35,8 @@ export const Sidebar: React.FC = () => {
         {
           name: 'Dashboard',
           link: '/dashboard',
-          activeLinks: ['/dashboard/[id]/participants'],
-          icon: FiHome
+          icon: FiBarChart2,
+          activeLinks: ['/dashboard', '/dashboard/[id]/participants', '/dashboard/[id]/certificates']
         },
         {
           name: 'Eventos',

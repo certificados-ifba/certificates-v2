@@ -91,7 +91,7 @@ const DashboardCertificate: React.FC = () => {
               color="secondary"
               ghost
               onClick={() => {
-                router.push(`/dashboard`)
+                router.push('/dashboard')
               }}
             >
               <FiChevronLeft size={20} />

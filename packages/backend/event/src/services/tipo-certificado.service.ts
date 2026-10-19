@@ -57,7 +57,8 @@ export class TipoCertificadoService {
     page,
     perPage,
     sortBy = 'created_at',
-    orderBy = 'ASC'
+    orderBy = 'ASC',
+    status
   }: ITipoCertificadoListParams): Promise<DataResponse> {
     const query: any = {}
 
@@ -65,6 +66,8 @@ export class TipoCertificadoService {
       { name: new RegExp(name ? '.*' + name + '.*' : '.*', 'i') },
       { initials: new RegExp(name ? '.*' + name + '.*' : '.*', 'i') }
     ]
+
+    if (['DRAFT', 'PUBLISHED', 'REVIEW'].includes(status)) query.status = status
 
     if (user.role !== 'ADMIN') query.user = new Types.ObjectId(user.id)
 
