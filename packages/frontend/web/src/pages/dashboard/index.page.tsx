@@ -54,7 +54,8 @@ interface ISystemMetrics {
 const statusOptions = [
   { label: 'Todos os Status', value: 'ALL' },
   { label: 'Publicado', value: 'PUBLISHED' },
-  { label: 'Rascunho', value: 'DRAFT' }
+  { label: 'Rascunho', value: 'DRAFT' },
+  { label: 'Em revisão', value: 'REVIEW' }
 ]
 
 const Dashboard: React.FC = () => {
@@ -324,7 +325,10 @@ const Dashboard: React.FC = () => {
             options={statusOptions}
             value={statusOptions.find(opt => opt.value === selectedStatus)}
             handleOnSelect={option => {
-              if (option?.value) setSelectedStatus(option.value)
+              if (option?.value) {
+                request.resetPage()
+                setSelectedStatus(option.value)
+              }
             }}
           />
         </div>
