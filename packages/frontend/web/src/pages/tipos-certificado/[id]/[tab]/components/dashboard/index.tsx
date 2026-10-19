@@ -752,6 +752,7 @@ export const EventDashboard: React.FC<Props> = ({ event }) => {
             outline
             onClick={handleExportPdf}
             loading={isExporting}
+            disabled={isLoadingSummary || isExporting}
             type="button"
           >
             <FiDownload size={18} />
