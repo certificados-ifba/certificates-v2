@@ -86,7 +86,7 @@ export class TiposCertificadoController {
     @Res({ passthrough: true }) res: Response,
     @Query() query: ListTipoCertificadoDto
   ): Promise<GetTiposCertificadoResponseDto> {
-    const { search, page, per_page, sort_by, order_by } = query
+    const { search, page, per_page, sort_by, order_by, status } = query
     const eventsResponse: IServiceTipoCertificadoListResponse = await this.eventServiceClient
       .send('tipo_certificado_list', {
         name: search,
@@ -94,7 +94,8 @@ export class TiposCertificadoController {
         page: Number(page),
         perPage: Number(per_page),
         sortBy: sort_by,
-        orderBy: order_by
+        orderBy: order_by,
+        status
       })
       .toPromise()
 

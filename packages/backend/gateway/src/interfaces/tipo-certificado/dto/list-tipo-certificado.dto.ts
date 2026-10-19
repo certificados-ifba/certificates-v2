@@ -15,4 +15,7 @@ export class ListTipoCertificadoDto {
 
   @ApiProperty({ example: '', required: false })
   order_by: 'ASC' | 'DESC'
+
+  @ApiProperty({ example: 'PUBLISHED', required: false })
+  status: 'DRAFT' | 'PUBLISHED' | 'REVIEW'
 }
