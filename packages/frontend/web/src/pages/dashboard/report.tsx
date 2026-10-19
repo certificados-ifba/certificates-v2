@@ -44,6 +44,7 @@ const FALLBACK_PALETTE = [
 
 interface IGeneralMetrics {
   totalEvents: number
+  publishedEvents: number
   totalParticipants: number
   totalCertificates: number
   certificationRate: number
@@ -99,8 +100,9 @@ const buildOverviewPage = (
     (a, b) => (certCountByEvent[b?.id] || 0) - (certCountByEvent[a?.id] || 0)
   )[0]
   const publishedCount = statusMap.PUBLISHED || 0
-  const avgPerEvent = metrics.totalEvents
-    ? (metrics.totalCertificates / metrics.totalEvents).toLocaleString(
+  // totalCertificates conta só eventos publicados, então divide pelos publicados.
+  const avgPerEvent = metrics.publishedEvents
+    ? (metrics.totalCertificates / metrics.publishedEvents).toLocaleString(
         'pt-BR',
         {
           minimumFractionDigits: 1,
@@ -126,7 +128,7 @@ const buildOverviewPage = (
       ${reportKpi(
         'Certificados emitidos',
         metrics.totalCertificates.toLocaleString('pt-BR'),
-        'Em todos os eventos',
+        'Em eventos publicados',
         '#7E3FF2'
       )}
       ${reportKpi(
@@ -161,7 +163,10 @@ const buildOverviewPage = (
       ${reportCard(`
         ${reportSectionTitle('Destaques')}
         ${reportInfoRow('Eventos publicados', `${publishedCount} de ${total}`)}
-        ${reportInfoRow('Média de certificados por evento', avgPerEvent)}
+        ${reportInfoRow(
+          'Média de certificados por evento publicado',
+          avgPerEvent
+        )}
         ${reportInfoRow(
           'Evento com mais certificados',
           topEvent && certCountByEvent[topEvent.id]

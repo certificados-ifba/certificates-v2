@@ -43,7 +43,10 @@ import {
 
 interface ISystemMetrics {
   totalEvents: number
+  /** Eventos publicados (vem do /resume, que conta só PUBLISHED). */
+  publishedEvents: number
   totalParticipants: number
+  /** Certificados de eventos publicados (vem do /resume). */
   totalCertificates: number
   certificationRate: number
 }
@@ -60,6 +63,7 @@ const Dashboard: React.FC = () => {
 
   const [metrics, setMetrics] = useState<ISystemMetrics>({
     totalEvents: 0,
+    publishedEvents: 0,
     totalParticipants: 0,
     totalCertificates: 0,
     certificationRate: 0
@@ -109,7 +113,9 @@ const Dashboard: React.FC = () => {
         const resumeData = resumeRes?.data?.data
         setEventsList(allEvents)
 
-        const totalEvents = resumeData?.events || allEvents.length
+        // O /resume conta só os eventos publicados; o total vem da listagem.
+        const totalEvents = allEvents.length
+        const publishedEvents = resumeData?.events || 0
         const totalParticipants = resumeData?.participants || 0
         const totalCertificates = resumeData?.certificates || 0
         const certificationRate =
@@ -122,6 +128,7 @@ const Dashboard: React.FC = () => {
 
         setMetrics({
           totalEvents,
+          publishedEvents,
           totalParticipants,
           totalCertificates,
           certificationRate
