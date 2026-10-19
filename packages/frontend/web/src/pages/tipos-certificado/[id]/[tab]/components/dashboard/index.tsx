@@ -146,16 +146,6 @@ const formatWorkload = (value: number) => {
   return `${hours}h ${minutes.toString().padStart(2, '0')}m`
 }
 
-const formatDateTime = (value: string | Date) =>
-  new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(new Date(value))
-
 const getGroupKey = (item: ICertificateDashboard, mode: FilterMode) => {
   if (mode === 'function') return item.function?.id || item.function?.name || ''
 
@@ -442,12 +432,8 @@ const buildActivitiesPageHtml = (
           <td style="${tdStyle}font-weight:600;color:#111827;">${escapeHtml(
         row.activity
       )}</td>
-          <td style="${tdStyle}">${escapeHtml(
-        formatDateTime(row.start_date)
-      )}</td>
-          <td style="${tdStyle}">${escapeHtml(
-        formatDateTime(row.end_date)
-      )}</td>
+          <td style="${tdStyle}">${escapeHtml(formatDate(row.start_date))}</td>
+          <td style="${tdStyle}">${escapeHtml(formatDate(row.end_date))}</td>
           <td style="${tdStyle}text-align:right;">${escapeHtml(
         formatWorkload(row.workload)
       )}</td>
@@ -1028,8 +1014,8 @@ export const EventDashboard: React.FC<Props> = ({ event }) => {
                   activityRows.map(activity => (
                     <tr key={activity.id}>
                       <td>{activity.activity}</td>
-                      <td>{formatDateTime(activity.start_date)}</td>
-                      <td>{formatDateTime(activity.end_date)}</td>
+                      <td>{formatDate(activity.start_date)}</td>
+                      <td>{formatDate(activity.end_date)}</td>
                       <td>{formatWorkload(activity.workload)}</td>
                       <td>{activity.certificates.toLocaleString('pt-BR')}</td>
                     </tr>
