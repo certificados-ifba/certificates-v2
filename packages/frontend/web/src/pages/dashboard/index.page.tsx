@@ -181,9 +181,10 @@ const Dashboard: React.FC = () => {
         eventsToExport.map(async evt => {
           const eventId = evt.id
           if (!eventId) return
+          // `page` é obrigatório: sem ele a API responde 500.
           try {
             const res = await api.get(`events/${eventId}/certificates`, {
-              params: { per_page: 1 }
+              params: { page: 1, per_page: 1 }
             })
             counts[eventId] = Number(res.headers?.['x-total-count'] || 0)
           } catch {
@@ -191,12 +192,13 @@ const Dashboard: React.FC = () => {
               const res = await api.get(
                 `tipos-certificado/${eventId}/certificates`,
                 {
-                  params: { per_page: 1 }
+                  params: { page: 1, per_page: 1 }
                 }
               )
               counts[eventId] = Number(res.headers?.['x-total-count'] || 0)
             } catch {
-              counts[eventId] = 0
+              // Sem contagem: não guarda no cache, para tentar de novo
+              // na próxima exportação (o relatório mostra 0).
             }
           }
         })
@@ -211,12 +213,18 @@ const Dashboard: React.FC = () => {
 
     try {
       setIsExporting(true)
-      const [logoMarkup, counts] = await Promise.all([
+      // Busca só os eventos que ainda não têm contagem no cache: a troca de
+      // filtro depois da 1ª exportação traz eventos que não estavam nele.
+      const missingEvents = filteredEvents.filter(
+        evt => evt?.id && certCountByEvent[evt.id] === undefined
+      )
+      const [logoMarkup, fetchedCounts] = await Promise.all([
         loadReportLogoMarkup().catch(() => ''),
-        Object.keys(certCountByEvent).length > 0
-          ? Promise.resolve(certCountByEvent)
-          : fetchCertCounts(filteredEvents)
+        missingEvents.length > 0
+          ? fetchCertCounts(missingEvents)
+          : Promise.resolve({} as Record<string, number>)
       ])
+      const counts = { ...certCountByEvent, ...fetchedCounts }
       setCertCountByEvent(counts)
 
       const pages = buildGeneralReportPages({
