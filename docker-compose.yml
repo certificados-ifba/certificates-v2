@@ -118,13 +118,13 @@ services:
     networks:
       - backend
   fix-db-permissions:
-    image: 'bitnami/mongodb:latest'
+    image: 'soldevelo/mongodb:latest'
     user: root
     command: 'chown -R 1001:1001 /bitnami/mongodb'
     volumes:
       - './docker/db:/bitnami/mongodb'
   db:
-    image: 'bitnami/mongodb:latest'
+    image: 'soldevelo/mongodb:latest'
     environment:
       - 'MONGODB_USERNAME=${MONGO_USER}'
       - 'MONGODB_PASSWORD=${MONGO_PASSWORD}'
